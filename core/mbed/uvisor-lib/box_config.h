@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2015, ARM Limited, All Rights Reserved
+ * Copyright (c) 2013-2016, ARM Limited, All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -48,12 +48,12 @@ UVISOR_EXTERN const uint32_t __uvisor_mode;
 /* this macro selects an overloaded macro (variable number of arguments) */
 #define __UVISOR_BOX_MACRO(_1, _2, _3, _4, NAME, ...) NAME
 
-#define __UVISOR_BOX_CONFIG(box_name, acl_list, acl_list_count, stack_size, context_size) \
+#define __UVISOR_BOX_CONFIG(box_prefix, acl_list, acl_list_count, stack_size, context_size) \
     \
     uint8_t __attribute__((section(".keep.uvisor.bss.boxes"), aligned(32))) \
-        box_name ## _reserved[UVISOR_STACK_SIZE_ROUND(((UVISOR_MIN_STACK(stack_size) + (context_size))*8)/6)]; \
+        box_prefix ## _reserved[UVISOR_STACK_SIZE_ROUND(((UVISOR_MIN_STACK(stack_size) + (context_size))*8)/6)]; \
     \
-    static const __attribute__((section(".keep.uvisor.cfgtbl"), aligned(4))) UvisorBoxConfig box_name ## _cfg = { \
+    static const __attribute__((section(".keep.uvisor.cfgtbl"), aligned(4))) UvisorBoxConfig box_prefix ## _cfg = { \
         UVISOR_BOX_MAGIC, \
         UVISOR_BOX_VERSION, \
         UVISOR_MIN_STACK(stack_size), \
@@ -62,21 +62,21 @@ UVISOR_EXTERN const uint32_t __uvisor_mode;
         acl_list_count \
     }; \
     \
-    extern const __attribute__((section(".keep.uvisor.cfgtbl_ptr"), aligned(4))) void * const box_name ## _cfg_ptr = &box_name ## _cfg;
+    extern const __attribute__((section(".keep.uvisor.cfgtbl_ptr"), aligned(4))) void * const box_prefix ## _cfg_ptr = &box_prefix ## _cfg;
 
-#define __UVISOR_BOX_CONFIG_NOCONTEXT(box_name, acl_list, stack_size) \
-    __UVISOR_BOX_CONFIG(box_name, acl_list, UVISOR_ARRAY_COUNT(acl_list), stack_size, 0) \
+#define __UVISOR_BOX_CONFIG_NOCONTEXT(box_prefix, acl_list, stack_size) \
+    __UVISOR_BOX_CONFIG(box_prefix, acl_list, UVISOR_ARRAY_COUNT(acl_list), stack_size, 0) \
 
-#define __UVISOR_BOX_CONFIG_CONTEXT(box_name, acl_list, stack_size, context_type) \
-    __UVISOR_BOX_CONFIG(box_name, acl_list, UVISOR_ARRAY_COUNT(acl_list), stack_size, sizeof(context_type)) \
+#define __UVISOR_BOX_CONFIG_CONTEXT(box_prefix, acl_list, stack_size, context_type) \
+    __UVISOR_BOX_CONFIG(box_prefix, acl_list, UVISOR_ARRAY_COUNT(acl_list), stack_size, sizeof(context_type)) \
     UVISOR_EXTERN context_type * const uvisor_ctx;
 
-#define __UVISOR_BOX_CONFIG_NOACL(box_name, stack_size, context_type) \
-    __UVISOR_BOX_CONFIG(box_name, NULL, 0, stack_size, sizeof(context_type)) \
+#define __UVISOR_BOX_CONFIG_NOACL(box_prefix, stack_size, context_type) \
+    __UVISOR_BOX_CONFIG(box_prefix, NULL, 0, stack_size, sizeof(context_type)) \
     UVISOR_EXTERN context_type * const uvisor_ctx;
 
-#define __UVISOR_BOX_CONFIG_NOACL_NOCONTEXT(box_name, stack_size) \
-    __UVISOR_BOX_CONFIG(box_name, NULL, 0, stack_size, 0)
+#define __UVISOR_BOX_CONFIG_NOACL_NOCONTEXT(box_prefix, stack_size) \
+    __UVISOR_BOX_CONFIG(box_prefix, NULL, 0, stack_size, 0)
 
 #define UVISOR_BOX_CONFIG_ACL(...) \
     __UVISOR_BOX_MACRO(__VA_ARGS__, __UVISOR_BOX_CONFIG_CONTEXT, \

@@ -41,16 +41,16 @@ UVISOR_EXTERN const uint32_t __uvisor_mode;
     static const void *main_acl = acl_list; \
     extern const __attribute__((section(".keep.uvisor.cfgtbl_ptr_first"), aligned(4))) void * const main_cfg_ptr = &main_acl;
 
-#define __UVISOR_BOX_CONFIG_NOCONTEXT(box_name, acl_list, stack_size) \
-    static const void *box_acl_ ## box_name = acl_list; \
-    extern const __attribute__((section(".keep.uvisor.cfgtbl_ptr"), aligned(4))) void * const box_name ## _cfg_ptr = &box_acl_ ## box_name;
+#define __UVISOR_BOX_CONFIG_NOCONTEXT(box_prefix, acl_list, stack_size) \
+    static const void *box_acl_ ## box_prefix = acl_list; \
+    extern const __attribute__((section(".keep.uvisor.cfgtbl_ptr"), aligned(4))) void * const box_prefix ## _cfg_ptr = &box_acl_ ## box_prefix;
 
-#define __UVISOR_BOX_CONFIG_CONTEXT(box_name, acl_list, stack_size, context_type) \
-    context_type box_ctx_ ## box_name; \
-    context_type * const uvisor_ctx = &box_ctx_ ## box_name; \
-    static const void *box_acl_ ## box_name = acl_list; \
-    const __attribute__((section(".keep.uvisor.cfgtbl_ptr"), aligned(4))) volatile void *box_name ## _cfg_ptr = \
-        &box_acl_ ## box_name;
+#define __UVISOR_BOX_CONFIG_CONTEXT(box_prefix, acl_list, stack_size, context_type) \
+    context_type box_ctx_ ## box_prefix; \
+    context_type * const uvisor_ctx = &box_ctx_ ## box_prefix; \
+    static const void *box_acl_ ## box_prefix = acl_list; \
+    const __attribute__((section(".keep.uvisor.cfgtbl_ptr"), aligned(4))) volatile void *box_prefix ## _cfg_ptr = \
+        &box_acl_ ## box_prefix;
 
 #define __UVISOR_BOX_MACRO(_1, _2, _3, _4, NAME, ...) NAME
 #define UVISOR_BOX_CONFIG(...) \
