@@ -91,4 +91,7 @@ UVISOR_EXTERN const uint32_t __uvisor_mode;
 #define UVISOR_BOX_CONFIG(...) \
     UVISOR_BOX_CONFIG_ACL(__VA_ARGS__)
 
+/* Return the numeric box ID of the current box. */
+UVISOR_EXTERN int uvisor_box_id_self(void);
+
 #endif /* __UVISOR_LIB_BOX_CONFIG_H__ */
