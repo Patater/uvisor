@@ -45,9 +45,22 @@ UVISOR_EXTERN const uint32_t __uvisor_mode;
     static const void *box_acl_ ## box_prefix = acl_list; \
     extern const __attribute__((section(".keep.uvisor.cfgtbl_ptr"), aligned(4))) void * const box_prefix ## _cfg_ptr = &box_acl_ ## box_prefix;
 
+#define __UVISOR_BOX_CONFIG_NOCONTEXT_NAME(box_prefix, box_name, acl_list, stack_size) \
+    static const char *box_name_ ## box_prefix = box_name; \
+    static const void *box_acl_ ## box_prefix = acl_list; \
+    extern const __attribute__((section(".keep.uvisor.cfgtbl_ptr"), aligned(4))) void * const box_prefix ## _cfg_ptr = &box_acl_ ## box_prefix;
+
 #define __UVISOR_BOX_CONFIG_CONTEXT(box_prefix, acl_list, stack_size, context_type) \
     context_type box_ctx_ ## box_prefix; \
     context_type * const uvisor_ctx = &box_ctx_ ## box_prefix; \
+    static const void *box_acl_ ## box_prefix = acl_list; \
+    const __attribute__((section(".keep.uvisor.cfgtbl_ptr"), aligned(4))) volatile void *box_prefix ## _cfg_ptr = \
+        &box_acl_ ## box_prefix;
+
+#define __UVISOR_BOX_CONFIG_CONTEXT_NAME(box_prefix, box_name, acl_list, stack_size, context_type) \
+    context_type box_ctx_ ## box_prefix; \
+    context_type * const uvisor_ctx = &box_ctx_ ## box_prefix; \
+    static const char *box_name_ ## box_prefix = box_name; \
     static const void *box_acl_ ## box_prefix = acl_list; \
     const __attribute__((section(".keep.uvisor.cfgtbl_ptr"), aligned(4))) volatile void *box_prefix ## _cfg_ptr = \
         &box_acl_ ## box_prefix;
@@ -60,6 +73,15 @@ UVISOR_EXTERN const uint32_t __uvisor_mode;
 #define UVISOR_BOX_CONFIG_ACL(...) UVISOR_BOX_CONFIG(__VA_ARGS__)
 
 #define UVISOR_BOX_CONFIG_CTX(...) UVISOR_BOX_CONFIG(__VA_ARGS__)
+
+#define __UVISOR_BOX_MACRO_5(_1, _2, _3, _4, _5, NAME, ...) NAME
+#define UVISOR_BOX_CONFIG_NAME(...) \
+    __UVISOR_BOX_MACRO_5(__VA_ARGS__, __UVISOR_BOX_CONFIG_CONTEXT_NAME, \
+                                    __UVISOR_BOX_CONFIG_NOCONTEXT_NAME)(__VA_ARGS__)
+
+#define UVISOR_BOX_CONFIG_ACL_NAME(...) UVISOR_BOX_CONFIG_NAME(__VA_ARGS__)
+
+#define UVISOR_BOX_CONFIG_CTX_NAME(...) UVISOR_BOX_CONFIG_NAME(__VA_ARGS__)
 
 /* uvisor-lib/interrupts.h */
 
