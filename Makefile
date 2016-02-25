@@ -18,8 +18,8 @@
 ###########################################################################
 # Toolchain
 PREFIX:=arm-none-eabi-
-CC:=$(PREFIX)gcc
-CXX:=$(PREFIX)g++
+CC:=ccache $(PREFIX)gcc
+CXX:=ccache $(PREFIX)g++
 OBJCOPY:=$(PREFIX)objcopy
 OBJDUMP:=$(PREFIX)objdump
 
