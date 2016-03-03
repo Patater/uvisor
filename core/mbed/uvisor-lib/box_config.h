@@ -71,18 +71,34 @@ UVISOR_EXTERN const uint32_t __uvisor_mode;
         acl_list_count \
     }; \
     \
-    extern const __attribute__((section(".keep.uvisor.cfgtbl_ptr"), aligned(4))) void * const box_name ## _cfg_ptr = &box_name ## _cfg;
+    extern const __attribute__((section(".keep.uvisor.cfgtbl_ptr"), aligned(4))) void * const box_name ## _cfg_ptr = &box_name ## _cfg; \
+    static const size_t  __uvisor_ctx_size = sizeof(box_name ## _reserved);
 
 #define __UVISOR_BOX_CONFIG_NOCONTEXT(box_name, acl_list, stack_size) \
     __UVISOR_BOX_CONFIG(box_name, acl_list, UVISOR_ARRAY_COUNT(acl_list), stack_size, 0) \
 
+#define __UVISOR_DECLARE_BUFFER_OVERLAPS_BOX_CONTEXT \
+    /* Return true if (and only if) the specified buffer overlaps box context. */ \
+    static inline bool uvisor_buffer_overlaps_box_context(const void *buffer, size_t length) \
+    { \
+        uintptr_t buffer_addr = (uintptr_t) buffer; \
+        uintptr_t ctx_addr = (uintptr_t) uvisor_ctx; \
+ \
+        return (buffer_addr <= ctx_addr && \
+                buffer_addr + length > ctx_addr) || \
+               (ctx_addr <= buffer_addr && \
+                ctx_addr + __uvisor_ctx_size > buffer_addr); \
+    }
+
 #define __UVISOR_BOX_CONFIG_CONTEXT(box_name, acl_list, stack_size, context_type) \
     __UVISOR_BOX_CONFIG(box_name, acl_list, UVISOR_ARRAY_COUNT(acl_list), stack_size, sizeof(context_type)) \
-    UVISOR_EXTERN context_type * const uvisor_ctx;
+    UVISOR_EXTERN context_type * const uvisor_ctx; \
+    __UVISOR_DECLARE_BUFFER_OVERLAPS_BOX_CONTEXT
 
 #define __UVISOR_BOX_CONFIG_NOACL(box_name, stack_size, context_type) \
     __UVISOR_BOX_CONFIG(box_name, NULL, 0, stack_size, sizeof(context_type)) \
-    UVISOR_EXTERN context_type * const uvisor_ctx;
+    UVISOR_EXTERN context_type * const uvisor_ctx; \
+    __UVISOR_DECLARE_BUFFER_OVERLAPS_BOX_CONTEXT
 
 #define __UVISOR_BOX_CONFIG_NOACL_NOCONTEXT(box_name, stack_size) \
     __UVISOR_BOX_CONFIG(box_name, NULL, 0, stack_size, 0)
