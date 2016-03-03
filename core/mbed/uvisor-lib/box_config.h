@@ -18,6 +18,7 @@
 #define __UVISOR_LIB_BOX_CONFIG_H__
 
 #include <stddef.h>
+#include <stdbool.h>
 
 UVISOR_EXTERN const uint32_t __uvisor_mode;
 
@@ -71,7 +72,8 @@ UVISOR_EXTERN const uint32_t __uvisor_mode;
         acl_list_count \
     }; \
     \
-    extern const __attribute__((section(".keep.uvisor.cfgtbl_ptr"), aligned(4))) void * const box_name ## _cfg_ptr = &box_name ## _cfg;
+    extern const __attribute__((section(".keep.uvisor.cfgtbl_ptr"), aligned(4))) void * const box_name ## _cfg_ptr = &box_name ## _cfg; \
+    static size_t __uvisor_ctx_size  = sizeof(box_name ## reserved);
 
 #define __UVISOR_BOX_CONFIG_NOCONTEXT(box_name, acl_list, stack_size) \
     __UVISOR_BOX_CONFIG(box_name, acl_list, UVISOR_ARRAY_COUNT(acl_list), stack_size, 0) \
@@ -106,6 +108,18 @@ UVISOR_EXTERN const uint32_t __uvisor_mode;
 #define UVISOR_BOX_NAMESPACE(box_namespace) \
     static const char *const __uvisor_box_namespace = box_namespace
 
+
+/* Return true if (and only if) the specified buffer overlaps box context. */
+static inline bool uvisor_buffer_overlaps_box_context(const void *buffer, size_t length)
+{
+    uintptr_t buffer_addr = (uintptr_t) buffer;
+    uintptr_t __uvisor_ctx_addr = (uintptr_t) &uvisor_ctx;
+
+    return (buffer_addr <= __uvisor_ctx_addr &&
+            buffer_addr + length > __uvisor_ctx_addr) ||
+           (__uvisor_ctx_addr <= buffer_addr &&
+            __uvisor_ctx_addr + __uvisor_ctx_size > buffer_addr);
+}
 
 /* Return the numeric box ID of the current box. */
 UVISOR_EXTERN int uvisor_box_id_self(void);
