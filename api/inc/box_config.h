@@ -122,4 +122,8 @@ UVISOR_EXTERN int uvisor_box_namespace(int box_id, char *box_namespace, size_t l
 
 UVISOR_EXTERN void uvisor_stupid_backdoor_register(void (*f)(void));
 
+UVISOR_EXTERN void uvisor_stupid_systick_register(void (*f)(void));
+
+UVISOR_EXTERN void uvisor_stupid_pendsv_register(void (*f)(void));
+
 #endif /* __UVISOR_API_BOX_CONFIG_H__ */

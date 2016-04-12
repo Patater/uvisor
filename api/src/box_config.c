@@ -38,3 +38,13 @@ void uvisor_stupid_backdoor_register(void (*f)(void))
 {
     UVISOR_SVC(UVISOR_SVC_ID_STUPID_BACKDOOR_REGISTER, "", f);
 }
+
+void uvisor_stupid_systick_register(void (*f)(void))
+{
+    UVISOR_SVC(UVISOR_SVC_ID_STUPID_SYSTICK_REGISTER, "", f);
+}
+
+void uvisor_stupid_pendsv_register(void (*f)(void))
+{
+    UVISOR_SVC(UVISOR_SVC_ID_STUPID_PENDSV_REGISTER, "", f);
+}

@@ -42,6 +42,8 @@ void __svc_not_implemented(void)
  * to SVC 0 instead. */
 
 static void (*stupid_backdoor_f)(void) = __svc_not_implemented;
+extern void (*stupid_systick_f)(void);
+extern void (*stupid_pendsv_f)(void);
 
 void stupid_backdoor_register(void (*f)(void))
 {
@@ -51,6 +53,16 @@ void stupid_backdoor_register(void (*f)(void))
 void stupid_backdoor(void)
 {
     stupid_backdoor_f();
+}
+
+void stupid_systick_register(void (*f)(void))
+{
+    stupid_systick_f = f;
+}
+
+void stupid_pendsv_register(void (*f)(void))
+{
+    stupid_pendsv_f = f;
 }
 
 /* SVC handlers */
@@ -78,6 +90,8 @@ const void *g_svc_vtor_tbl[] = {
      *        introduced. The initialization will happen at uVisor boot time. */
     debug_register_driver,      // 19
     stupid_backdoor_register,   // 20
+    stupid_systick_register,    // 21
+    stupid_pendsv_register,     // 22
 };
 
 /*******************************************************************************

@@ -27,6 +27,20 @@ void UVISOR_ALIAS(isr_default_sys_handler) DebugMonitor_IRQn_Handler(void);
 void UVISOR_ALIAS(isr_default_sys_handler) PendSV_IRQn_Handler(void);
 void UVISOR_ALIAS(isr_default_sys_handler) SysTick_IRQn_Handler(void);
 
+
+void (*stupid_systick_f)(void) = isr_default_sys_handler;
+void (*stupid_pendsv_f)(void) = isr_default_sys_handler;
+
+void stupid_systick(void)
+{
+    stupid_systick_f();
+}
+
+void stupid_pendsv(void)
+{
+    stupid_pendsv_f();
+}
+
 /* Default vector table (placed in Flash) */
 __attribute__((section(".isr"))) const TIsrVector g_isr_vector[ISR_VECTORS] =
 {
@@ -47,8 +61,8 @@ __attribute__((section(".isr"))) const TIsrVector g_isr_vector[ISR_VECTORS] =
     SVCall_IRQn_Handler,                   /* - 5 */
     DebugMonitor_IRQn_Handler,             /* - 4 */
     isr_default_sys_handler,               /* - 3 */
-    PendSV_IRQn_Handler,                   /* - 2 */
-    SysTick_IRQn_Handler,                  /* - 1 */
+    stupid_systick,                        /* - 2 */
+    stupid_pendsv,                         /* - 1 */
 
     /* NVIC IRQs */
     /* Note: This is a GCC extension. */
@@ -58,6 +72,9 @@ __attribute__((section(".isr"))) const TIsrVector g_isr_vector[ISR_VECTORS] =
 void UVISOR_NAKED UVISOR_NORETURN isr_default_sys_handler(void)
 {
     /* Handle system IRQ with an unprivileged handler. */
+    /* XXX Could we have registered an unprivileged SysTick handler??? Would
+     * have been convenient for RTX, if so. vmpu_sys_mux_handler doesn't seem
+     * to handle PendSV or SysTick... */
     /* Note: The original lr and the MSP are passed to the actual handler */
     asm volatile(
         "mov r0, lr\n"
