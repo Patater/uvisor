@@ -42,18 +42,13 @@ void __svc_not_implemented(void)
  * is fully contained within the uVisor binary... Let's add a stupid backdoor
  * to SVC 0 instead. */
 
-static void (*stupid_backdoor_f)(void) = __svc_not_implemented;
+void (*stupid_backdoor_f)(void) = __svc_not_implemented;
 extern void (*stupid_systick_f)(void);
 extern void (*stupid_pendsv_f)(void);
 
 void stupid_backdoor_register(void (*f)(void))
 {
     stupid_backdoor_f = f;
-}
-
-void stupid_backdoor(void)
-{
-    stupid_backdoor_f();
 }
 
 void stupid_systick_register(void (*f)(void))
@@ -68,7 +63,7 @@ void stupid_pendsv_register(void (*f)(void))
 
 /* SVC handlers */
 const void *g_svc_vtor_tbl[] = {
-    stupid_backdoor,            //  0
+    __svc_not_implemented,      //  0
     unvic_isr_set,              //  1
     unvic_isr_get,              //  2
     unvic_irq_enable,           //  3
@@ -127,6 +122,13 @@ const void *g_svc_vtor_tbl[] = {
 void UVISOR_NAKED SVCall_IRQn_Handler(void)
 {
     asm volatile(
+#if 0
+    MRS     R0,PSP                  /* Read PSP */
+    LDR     R1,[R0,#24]             /* Read Saved PC from Stack */
+    LDRB    R1,[R1,#-2]             /* Load SVC Number */
+    CBNZ    R1,SVC_User
+#endif
+
         "tst    lr, #4\n"                   // privileged/unprivileged mode
         "it     eq\n"
         "beq    called_from_priv\n"
@@ -138,6 +140,10 @@ void UVISOR_NAKED SVCall_IRQn_Handler(void)
         "ldrt   r1, [r0, #24]\n"            // stacked pc
         "add    r1, r1, #-2\n"              // pc at SVC call
         "ldrbt  r2, [r1]\n"                 // SVC immediate
+        "cmp    r2, 0\n"                    // If SVC is 0:
+        "itt    eq\n"
+        "ldreq  r4, =stupid_backdoor_f\n"   //   Run stupid backdoor
+        "ldreq  pc, [r4]\n"
         /***********************************************************************
          *  ATTENTION
          ***********************************************************************
@@ -206,6 +212,10 @@ void UVISOR_NAKED SVCall_IRQn_Handler(void)
         "ldr    r1, [r0, #24]\n"                    // stacked pc
         "add    r1, r1, #-2\n"                      // pc at SVC call
         "ldrb   r2, [r1]\n"                         // SVC immediate
+        "cmp    r2, 0\n"                    // If SVC is 0:
+        "itt    eq\n"
+        "ldreq  r4, =stupid_backdoor_f\n"   //   Run stupid backdoor
+        "ldreq  pc, [r4]\n"
         /***********************************************************************
          *  ATTENTION
          ***********************************************************************
