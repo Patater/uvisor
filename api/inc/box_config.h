@@ -120,4 +120,6 @@ UVISOR_EXTERN int uvisor_box_id_caller(void);
  * UVISOR_ERROR_BOX_NAMESPACE_ANONYMOUS if the box is anonymous. */
 UVISOR_EXTERN int uvisor_box_namespace(int box_id, char *box_namespace, size_t length);
 
+UVISOR_EXTERN void uvisor_stupid_backdoor_register(void (*f)(void));
+
 #endif /* __UVISOR_API_BOX_CONFIG_H__ */
