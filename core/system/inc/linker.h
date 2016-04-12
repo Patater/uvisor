@@ -75,6 +75,11 @@ typedef struct {
     uint32_t *flash_end;
     uint32_t *sram_start;
     uint32_t *sram_end;
+
+    /* Privileged handlers */
+    void (*priv_svc_0)(void);
+    void (*priv_pendsv)(void);
+    void (*priv_systick)(void);
 } UVISOR_PACKED UvisorConfig;
 
 UVISOR_EXTERN const UvisorConfig __uvisor_config;
