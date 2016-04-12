@@ -36,9 +36,27 @@ void __svc_not_implemented(void)
     HALT_ERROR(NOT_IMPLEMENTED, "function not implemented\n\r");
 }
 
+/* We can't add the RTX SVC here, because we need to provide a fully linked
+ * binary. And we didn't link with RTX yet. We can duplicate the SVC stuff from
+ * RTX here, I guess. No, that will need more and more stuff linked until RTX
+ * is fully contained within the uVisor binary... Let's add a stupid backdoor
+ * to SVC 0 instead. */
+
+static void (*stupid_backdoor_f)(void) = __svc_not_implemented;
+
+void stupid_backdoor_register(void (*f)(void))
+{
+    stupid_backdoor_f = f;
+}
+
+void stupid_backdoor(void)
+{
+    stupid_backdoor_f();
+}
+
 /* SVC handlers */
 const void *g_svc_vtor_tbl[] = {
-    __svc_not_implemented,      //  0
+    stupid_backdoor,            //  0
     unvic_isr_set,              //  1
     unvic_isr_get,              //  2
     unvic_irq_enable,           //  3
@@ -62,6 +80,7 @@ const void *g_svc_vtor_tbl[] = {
     debug_register_driver,      // 19
     page_malloc,                // 20
     page_free,                  // 21
+    stupid_backdoor_register,   // 22
 };
 
 /*******************************************************************************

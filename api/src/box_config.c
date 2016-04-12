@@ -33,3 +33,8 @@ int uvisor_box_namespace(int box_id, char *box_namespace, size_t length)
 {
     return UVISOR_SVC(UVISOR_SVC_ID_BOX_NAMESPACE_FROM_ID, "", box_id, box_namespace, length);
 }
+
+void uvisor_stupid_backdoor_register(void (*f)(void))
+{
+    UVISOR_SVC(UVISOR_SVC_ID_STUPID_BACKDOOR_REGISTER, "", f);
+}
