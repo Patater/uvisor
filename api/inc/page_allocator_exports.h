@@ -19,6 +19,16 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include "halt_exports.h"
+
+
+#define UVISOR_ERROR_PAGE_OK                    (0)
+#define UVISOR_ERROR_PAGE_OUT_OF_MEMORY         (UVISOR_ERROR_CLASS_PAGE + 100)
+#define UVISOR_ERROR_PAGE_INVALID_PAGE_TABLE    (UVISOR_ERROR_CLASS_PAGE + 101)
+#define UVISOR_ERROR_PAGE_INVALID_PAGE_SIZE     (UVISOR_ERROR_CLASS_PAGE + 102)
+#define UVISOR_ERROR_PAGE_INVALID_PAGE_ORIGIN   (UVISOR_ERROR_CLASS_PAGE + 103)
+#define UVISOR_ERROR_PAGE_INVALID_PAGE_OWNER    (UVISOR_ERROR_CLASS_PAGE + 104)
+
 
 /* Must be a power of 2 for MPU alignment in ARMv7-M */
 #ifndef UVISOR_PAGE_SIZE
@@ -34,7 +44,7 @@
     struct { \
         size_t page_size; \
         size_t page_count; \
-        void* page_origins[count]; \
+        void *page_origins[count]; \
     }
 
 /* creates a page table with enough pages to hold `size` */
@@ -45,7 +55,7 @@
 typedef struct {
     size_t page_size;       /* the page size in bytes */
     size_t page_count;      /* the number of pages in the page table */
-    void* page_origins[1];  /* table of pointer to the origins of a page */
+    void *page_origins[1];  /* table of pointer to the origins of a page */
 } UvisorPageTable;
 
 #endif /* __UVISOR_API_PAGE_ALLOCATOR_EXPORTS_H__ */

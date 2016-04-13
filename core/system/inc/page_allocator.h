@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, ARM Limited, All Rights Reserved
+ * Copyright (c) 2016, ARM Limited, All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -14,21 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef __UVISOR_API_HALT_EXPORTS_H__
-#define __UVISOR_API_HALT_EXPORTS_H__
+#ifndef __PAGE_ALLOCATOR_H__
+#define __PAGE_ALLOCATOR_H__
 
-#define UVISOR_ERROR_INVALID_BOX_ID             (-2)
-#define UVISOR_ERROR_BUFFER_TOO_SMALL           (-3)
-#define UVISOR_ERROR_BOX_NAMESPACE_ANONYMOUS    (-4)
+#include "api/inc/page_allocator_exports.h"
 
+void page_allocator_init(void *heap_start, void *heap_end, uint32_t page_size);
+int page_allocator_malloc(UvisorPageTable *const table);
+int page_allocator_free(const UvisorPageTable *const table);
 
-#define UVISOR_ERROR_CLASS_MASK     (0xffff0000)
-#define UVISOR_ERROR_MASK           (0x0000ffff)
-
-#define UVISOR_ERROR_CLASS_PAGE     (1ul << 16)
-
-typedef enum {
-    USER_NOT_ALLOWED = 1,
-} THaltUserError;
-
-#endif /* __UVISOR_API_HALT_EXPORTS_H__ */
+#endif /*__PAGE_ALLOCATOR_H__*/

@@ -22,6 +22,7 @@
 #include "svc.h"
 #include "unvic.h"
 #include "vmpu.h"
+#include "page_allocator.h"
 
 /* these symbols are linked in this scope from the ASM code in __svc_irq and
  * are needed for sanity checks */
@@ -62,6 +63,8 @@ const void *g_svc_vtor_tbl[] = {
     debug_register_driver,      // 19
     unvic_irq_disable_all,      // 20
     unvic_irq_enable_all,       // 21
+    page_allocator_malloc,      // 22
+    page_allocator_free,        // 23
 };
 
 /*******************************************************************************
