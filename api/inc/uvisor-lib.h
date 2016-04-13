@@ -41,6 +41,8 @@
 
 #endif /* defined(UVISOR_PRESENT) && UVISOR_PRESENT == 1 */
 
+#include "api/inc/page_allocator.h"
+
 /* Include all exported header files used by uVisor internally.
  * These are included independently on whether uVisor is supported or not by the
  * target platform. */
