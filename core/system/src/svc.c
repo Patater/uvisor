@@ -21,6 +21,7 @@
 #include "unvic.h"
 #include "benchmark.h"
 #include "debug.h"
+#include "page_allocator.h"
 
 /* these symbols are linked in this scope from the ASM code in __svc_irq and
  * are needed for sanity checks */
@@ -87,6 +88,8 @@ const void *g_svc_vtor_tbl[] = {
     stupid_backdoor_register,   // 20
     stupid_systick_register,    // 21
     stupid_pendsv_register,     // 22
+    page_malloc,                // 23
+    page_free,                  // 24
 };
 
 /*******************************************************************************
