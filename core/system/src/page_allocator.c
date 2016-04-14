@@ -28,7 +28,7 @@ typedef uint8_t page_owner_t;
 /* Maps the page to the owning box handle */
 static page_owner_t page_owner_table[UVISOR_PAGE_TABLE_COUNT];
 /* define a unused value for the page table */
-#define UVISOR_PAGE_UNUSED ((page_owner_t)0)
+#define UVISOR_PAGE_UNUSED ((page_owner_t)(-1))
 
 /* Points to the beginning of the page heap */
 static const void* page_heap_start;
@@ -42,6 +42,12 @@ static uint8_t page_count_total;
 
 void page_init(void *heap_start, void *heap_end)
 {
+    /* make sure the UVISOR_PAGE_UNUSED is definitely NOT a valid box id! */
+    if (vmpu_is_box_id_valid(UVISOR_PAGE_UNUSED))
+        HALT_ERROR(SANITY_CHECK_FAILED,
+            "UVISOR_PAGE_UNUSED (%u) must not be a valid box id!\n",
+            UVISOR_PAGE_UNUSED);
+
     uint32_t start = (uint32_t)heap_start;
     /* round up to the nearest page aligned memory address */
     start += UVISOR_PAGE_ALIGNMENT - 1;
