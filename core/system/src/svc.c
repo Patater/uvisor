@@ -142,8 +142,8 @@ void UVISOR_NAKED SVCall_IRQn_Handler(void)
         "ldrbt  r2, [r1]\n"                 // SVC immediate
         "cmp    r2, 0\n"                    // If SVC is 0:
         "itt    eq\n"
-        "ldreq  r4, =stupid_backdoor_f\n"   //   Run stupid backdoor
-        "ldreq  pc, [r4]\n"
+        "ldreq  r0, =stupid_backdoor_f\n"   //   Run stupid backdoor
+        "ldreq  pc, [r0]\n"
         /***********************************************************************
          *  ATTENTION
          ***********************************************************************
@@ -214,8 +214,8 @@ void UVISOR_NAKED SVCall_IRQn_Handler(void)
         "ldrb   r2, [r1]\n"                         // SVC immediate
         "cmp    r2, 0\n"                    // If SVC is 0:
         "itt    eq\n"
-        "ldreq  r4, =stupid_backdoor_f\n"   //   Run stupid backdoor
-        "ldreq  pc, [r4]\n"
+        "ldreq  r0, =stupid_backdoor_f\n"   //   Run stupid backdoor
+        "ldreq  pc, [r0]\n"
         /***********************************************************************
          *  ATTENTION
          ***********************************************************************
