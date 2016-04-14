@@ -61,8 +61,8 @@ __attribute__((section(".isr"))) const TIsrVector g_isr_vector[ISR_VECTORS] =
     SVCall_IRQn_Handler,                   /* - 5 */
     DebugMonitor_IRQn_Handler,             /* - 4 */
     isr_default_sys_handler,               /* - 3 */
-    stupid_systick,                        /* - 2 */
-    stupid_pendsv,                         /* - 1 */
+    stupid_pendsv,                         /* - 2 */
+    stupid_systick,                        /* - 1 */
 
     /* NVIC IRQs */
     /* Note: This is a GCC extension. */
