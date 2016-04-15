@@ -83,12 +83,12 @@ int page_malloc(UvisorPageTable *const table)
     /* check if we can fulfill the requested page size */
     if (table->page_size != UVISOR_PAGE_SIZE) {
         DPRINTF("uvisor_page_malloc: FAIL: Requested page size %uB is not the configured page size %uB!\n\n", table->page_size, UVISOR_PAGE_SIZE);
-        return -1;
+        return UVISOR_ERROR_PAGE_INVALID_PAGE_SIZE;
     }
     /* check if we have enough pages available */
     if (table->page_count > page_count_free) {
         DPRINTF("uvisor_page_malloc: FAIL: Cannot serve %u pages with only %u free pages!\n\n", table->page_count, page_count_free);
-        return -1;
+        return UVISOR_ERROR_PAGE_OUT_OF_MEMORY;
     }
 
     /* get the calling box id */
@@ -120,26 +120,26 @@ int page_malloc(UvisorPageTable *const table)
     }
     DPRINTF("uvisor_page_malloc: %u free pages remaining.\n\n", page_count_free);
 
-    return 0;
+    return UVISOR_ERROR_PAGE_OK;
 }
 
 int page_free(const UvisorPageTable *const table)
 {
     if (page_count_free == page_count_total) {
         DPRINTF("uvisor_page_free: FAIL: There are no pages to free!\n\n");
-        return -1;
+        return UVISOR_ERROR_PAGE_INVALID_PAGE_TABLE;
     }
     if (table->page_size != UVISOR_PAGE_SIZE) {
         DPRINTF("uvisor_page_free: FAIL: Requested page size %uB is not the configured page size %uB!\n\n", table->page_size, UVISOR_PAGE_SIZE);
-        return -1;
+        return UVISOR_ERROR_PAGE_INVALID_PAGE_SIZE;
     }
     if (table->page_count == 0) {
         DPRINTF("uvisor_page_free: FAIL: Pointer table is empty!\n\n");
-        return -1;
+        return UVISOR_ERROR_PAGE_INVALID_PAGE_TABLE;
     }
     if (table->page_count > (page_count_total - page_count_free)) {
         DPRINTF("uvisor_page_free: FAIL: Pointer table too large!\n\n");
-        return -1;
+        return UVISOR_ERROR_PAGE_INVALID_PAGE_TABLE;
     }
 
     /* get the calling box id */
@@ -154,7 +154,7 @@ int page_free(const UvisorPageTable *const table)
         /* range check the returned pointer */
         if (*page < page_heap_start || *page >= page_heap_end) {
             DPRINTF("uvisor_page_free: FAIL: Pointer 0x%08x does not belong to any page!\n\n", *page);
-            return -1;
+            return UVISOR_ERROR_PAGE_INVALID_PAGE_ORIGIN;
         }
         /* compute the index for the pointer */
         size_t page_index = (*page - page_heap_start) / UVISOR_PAGE_SIZE;
@@ -165,11 +165,11 @@ int page_free(const UvisorPageTable *const table)
         /* abort if the page doesn't belong to the caller */
         else if (page_owner_table[page_index] == UVISOR_PAGE_UNUSED) {
             DPRINTF("uvisor_page_free: FAIL: Page %u is not allocated!\n\n", page_index);
-            return -1;
+            return UVISOR_ERROR_PAGE_INVALID_PAGE_OWNER;
         }
         else {
             DPRINTF("uvisor_page_free: FAIL: Page %u is not owned by box %u!\n\n", page_index, box_id);
-            return -1;
+            return UVISOR_ERROR_PAGE_INVALID_PAGE_OWNER;
         }
     }
     /* we now have validated the pages in the table.
@@ -187,5 +187,5 @@ int page_free(const UvisorPageTable *const table)
     page_count_free += table->page_count;
 
     DPRINTF("uvisor_page_free: %u free pages available.\n\n", page_count_free);
-    return 0;
+    return UVISOR_ERROR_PAGE_OK;
 }
