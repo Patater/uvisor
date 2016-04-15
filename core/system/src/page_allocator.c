@@ -21,8 +21,10 @@
 /* Must be UVISOR_PAGE_SIZE for MPU alignment in ARMv7-M */
 #define UVISOR_PAGE_ALIGNMENT UVISOR_PAGE_SIZE
 
-/* We can only have a total of 64 pages for now */
-#define UVISOR_PAGE_TABLE_COUNT ((size_t)64)
+/* By default 64 pages are allowed */
+#ifndef UVISOR_PAGE_TABLE_COUNT
+#   define UVISOR_PAGE_TABLE_COUNT ((size_t)64)
+#endif
 /* The page box_id is the box id which is 8bit large  */
 typedef uint8_t page_owner_t;
 /* Maps the page to the owning box handle */
@@ -57,6 +59,8 @@ void page_init(void *heap_start, void *heap_end)
 
     /* how many pages can we fit in here? */
     page_count_total = ((uint32_t)heap_end - start) / UVISOR_PAGE_SIZE;
+    /* clamp page count to table size */
+    if (page_count_total > UVISOR_PAGE_TABLE_COUNT) page_count_total = UVISOR_PAGE_TABLE_COUNT;
     page_count_free = page_count_total;
     /* remember the end of the heap */
     page_heap_end = page_heap_start + page_count_free * UVISOR_PAGE_SIZE;
@@ -101,7 +105,7 @@ int page_malloc(UvisorPageTable *const table)
     for (; (page < page_count_total) && pages_required; page++) {
         /* if the page is unused, it's entry is UVISOR_PAGE_UNUSED (not NULL!) */
         if (page_owner_table[page] == UVISOR_PAGE_UNUSED) {
-            /* marry this page to the handle */
+            /* marry this page to the box id */
             page_owner_table[page] = box_id;
             /* get the pointer to the page */
             void* ptr = (void*)page_heap_start + page * UVISOR_PAGE_SIZE;
@@ -143,7 +147,7 @@ int page_free(const UvisorPageTable *const table)
     int table_size = table->page_count;
 
     /* contains the bit mask of all the pages we need to free */
-    uint64_t free_mask = 0;
+    uint32_t free_mask[(UVISOR_PAGE_TABLE_COUNT + 31) / 32] = {0};
     /* iterate over the table and validate each pointer */
     void* const *page = table->page_origins;
     for (; table_size > 0; page++, table_size--) {
@@ -156,7 +160,7 @@ int page_free(const UvisorPageTable *const table)
         size_t page_index = (*page - page_heap_start) / UVISOR_PAGE_SIZE;
         /* check if the page belongs to the caller */
         if (page_owner_table[page_index] == box_id) {
-            free_mask |= (1 << page_index);
+            free_mask[page_index/32] |= (1 << (page_index & 31));
         }
         /* abort if the page doesn't belong to the caller */
         else if (page_owner_table[page_index] == UVISOR_PAGE_UNUSED) {
@@ -174,7 +178,7 @@ int page_free(const UvisorPageTable *const table)
     /* iterate over the bits in the free mask and actually free the pages */
     size_t count = 0;
     for (; count < page_count_total; count++) {
-        if (free_mask & (1 << count)) {
+        if (free_mask[count/32] & (1 << (count & 31))) {
             page_owner_table[count] = UVISOR_PAGE_UNUSED;
             DPRINTF("uvisor_page_free: Freeing page at index %u\n", count);
         }
