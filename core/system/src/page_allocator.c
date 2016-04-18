@@ -65,7 +65,7 @@ void page_init(void *heap_start, void *heap_end)
     /* remember the end of the heap */
     page_heap_end = page_heap_start + page_count_free * UVISOR_PAGE_SIZE;
 
-    DPRINTF("uvisor_page_init:\n.page_heap start %p\n.page_heap end   %p\n.page_heap available %ukB split into %u pages of %ukB\n\n",
+    DPRINTF("uvisor_page_init:\n.page_heap start 0x%08x\n.page_heap end   0x%08x\n.page_heap available %ukB split into %u pages of %ukB\n\n",
             page_heap_start,
             page_heap_end,
             (unsigned int) (page_count_free * UVISOR_PAGE_SIZE / 1024),
@@ -115,7 +115,7 @@ int page_malloc(UvisorPageTable *const table)
             *page_origins++ = ptr;
             /* one less page required */
             pages_required--;
-            DPRINTF("uvisor_page_malloc: Found an empty page %p entry at index %u\n", ptr, page);
+            DPRINTF("uvisor_page_malloc: Found an empty page 0x%08x entry at index %u\n", ptr, page);
         }
     }
     DPRINTF("uvisor_page_malloc: %u free pages remaining.\n\n", page_count_free);
@@ -153,7 +153,7 @@ int page_free(const UvisorPageTable *const table)
     for (; table_size > 0; page++, table_size--) {
         /* range check the returned pointer */
         if (*page < page_heap_start || *page >= page_heap_end) {
-            DPRINTF("uvisor_page_free: FAIL: Pointer %p does not belong to any page!\n\n", *page);
+            DPRINTF("uvisor_page_free: FAIL: Pointer 0x%08x does not belong to any page!\n\n", *page);
             return UVISOR_ERROR_PAGE_INVALID_PAGE_ORIGIN;
         }
         /* compute the index for the pointer */
