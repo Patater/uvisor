@@ -48,3 +48,18 @@ void uvisor_stupid_pendsv_register(void (*f)(void))
 {
     UVISOR_SVC(UVISOR_SVC_ID_STUPID_PENDSV_REGISTER, "", f);
 }
+
+void uvisor_thread_alloc(uint32_t thread_id)
+{
+    UVISOR_SVC(UVISOR_SVC_ID_THREAD_ALLOC, "", thread_id);
+}
+
+void uvisor_thread_free(uint32_t thread_id)
+{
+    UVISOR_SVC(UVISOR_SVC_ID_THREAD_FREE, "", thread_id);
+}
+
+void uvisor_thread_switch(uint32_t thread_id)
+{
+    UVISOR_SVC(UVISOR_SVC_ID_THREAD_SWITCH, "", thread_id);
+}

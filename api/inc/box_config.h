@@ -126,4 +126,8 @@ UVISOR_EXTERN void uvisor_stupid_systick_register(void (*f)(void));
 
 UVISOR_EXTERN void uvisor_stupid_pendsv_register(void (*f)(void));
 
+UVISOR_EXTERN void uvisor_thread_alloc(uint32_t thread_id);
+UVISOR_EXTERN void uvisor_thread_free(uint32_t thread_id);
+UVISOR_EXTERN void uvisor_thread_switch(uint32_t thread_id);
+
 #endif /* __UVISOR_API_BOX_CONFIG_H__ */

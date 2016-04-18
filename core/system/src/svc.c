@@ -60,6 +60,32 @@ void stupid_pendsv_register(void (*f)(void))
     stupid_pendsv_f = f;
 }
 
+static TBoxCx *g_svc_cx_states[UVISOR_MAX_THREADS];
+
+static void thread_alloc(uint32_t thread_id)
+{
+    /* Allocate resources in uVisor for thread */
+    /* Maybe can use our Tier-1 allocator? It's per-process and would prevent a
+     * rougue process from stealing the ability to create more threads from
+     * other processes when memory runs out. */
+    g_svc_cx_states[thread_id] =
+        malloc(sizeof(TBoxCx) * UVISOR_SVC_CONTEXT_MAX_DEPTH);
+}
+
+static void uvisor_thread_free(uint32_t thread_id)
+{
+    /* Free resources in uVisor for thread */
+}
+
+static void uvisor_thread_switch(uint32_t thread_id)
+{
+    /* Switch to resources in uVisor for thread */
+
+    /* There is one of these for every thread. There is also one of these per
+     * box, for handling interrupts. */
+    TBoxCx    g_svc_cx_state[UVISOR_SVC_CONTEXT_MAX_DEPTH];
+}
+
 /* SVC handlers */
 const void *g_svc_vtor_tbl[] = {
     __svc_not_implemented,      //  0
