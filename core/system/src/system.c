@@ -102,6 +102,51 @@ void UVISOR_NAKED UVISOR_NORETURN isr_default_handler(void)
 
 typedef void (*TPrivcall)(void*);
 
+/* XXX This only works when thread IDs are compact in representation and are
+ * not a 32-bit hash or pointer. */
+static uint8_t thread_to_box_map[UVISOR_MAX_THREADS];
+
+static void privcall_thread_alloc(void *ctx)
+{
+    uint32_t thread_id = (uint32_t)ctx;
+
+    /* Allocate resources in uVisor for thread */
+    /* Maybe can use our Tier-1 allocator? It's per-process and would prevent a
+     * rougue process from stealing the ability to create more threads from
+     * other processes when memory runs out. */
+
+    /* Record which box_id this thread is for, so we can know when to change
+     * the MPU context. */
+    thread_to_box_map[thread_id] = g_active_box;
+}
+
+static void privcall_thread_free(void *ctx)
+{
+    uint32_t thread_id = (uint32_t)ctx;
+
+    /* Free resources in uVisor for thread */
+    (void)thread_id;
+}
+
+static void privcall_thread_switch(void *ctx)
+{
+    uint32_t thread_id = (uint32_t)ctx;
+
+    /* Switch to resources in uVisor for thread */
+
+    /* There is one of these for every thread. There is also one of these per
+     * box, for handling interrupts. */
+    g_svc_cx_current_tid = thread_id;
+
+    uint8_t dst_box = thread_to_box_map[g_svc_cx_current_tid];
+
+    if (g_active_box != dst_box)
+    {
+        /* Switch to new MPU context. */
+        vmpu_switch(g_active_box, dst_box);
+    }
+}
+
 static void privcall_version(void *ctx)
 {
     uint32_t *version = (uint32_t *)ctx;
@@ -112,6 +157,9 @@ static void privcall_version(void *ctx)
 static const TPrivcall privcalls[] =
 {
     privcall_version,       // 0
+    privcall_thread_alloc,  // 1
+    privcall_thread_free,   // 2
+    privcall_thread_switch, // 3
 };
 
 void privcall_dispatch(size_t num, void *ctx)

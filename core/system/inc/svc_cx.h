@@ -23,6 +23,9 @@
 
 #define SVC_CX_EXC_SF_SIZE 8
 
+/* The maximum number of threads uVisor will keep track of */
+#define UVISOR_MAX_THREADS 16
+
 typedef enum {
     TBOXCX_INVALID = 0,
     TBOXCX_SECURE_GATEWAY,
@@ -38,20 +41,23 @@ typedef struct {
 } UVISOR_PACKED TBoxCx;
 
 /* state variables */
-extern TBoxCx    g_svc_cx_state[UVISOR_SVC_CONTEXT_MAX_DEPTH];
-extern int       g_svc_cx_state_ptr;
+extern TBoxCx    g_svc_cx_states[UVISOR_MAX_THREADS][UVISOR_SVC_CONTEXT_MAX_DEPTH];
+extern size_t g_svc_cx_current_tid;
+extern int       g_svc_cx_state_ptrs[UVISOR_MAX_THREADS];
 extern uint32_t *g_svc_cx_curr_sp[UVISOR_MAX_BOXES];
 extern uint32_t *g_svc_cx_context_ptr[UVISOR_MAX_BOXES];
 extern uint8_t g_active_box;
 
 static inline uint8_t svc_cx_get_src_id(void)
 {
-    return g_svc_cx_state[g_svc_cx_state_ptr].src_id;
+    const int g_svc_cx_state_ptr = g_svc_cx_state_ptrs[g_svc_cx_current_tid];
+    return g_svc_cx_states[g_svc_cx_current_tid][g_svc_cx_state_ptr].src_id;
 }
 
 static inline uint32_t *svc_cx_get_src_sp(void)
 {
-    return g_svc_cx_state[g_svc_cx_state_ptr].src_sp;
+    const int g_svc_cx_state_ptr = g_svc_cx_state_ptrs[g_svc_cx_current_tid];
+    return g_svc_cx_states[g_svc_cx_current_tid][g_svc_cx_state_ptr].src_sp;
 }
 
 static inline uint32_t *svc_cx_get_curr_sp(uint8_t box_id)
@@ -62,15 +68,17 @@ static inline uint32_t *svc_cx_get_curr_sp(uint8_t box_id)
 static void inline svc_cx_push_state(uint8_t src_id, uint8_t type, uint32_t *src_sp,
                                      uint8_t dst_id)
 {
+    const int g_svc_cx_state_ptr = g_svc_cx_state_ptrs[g_svc_cx_current_tid];
+
     /* check state stack overflow */
     if(g_svc_cx_state_ptr == UVISOR_SVC_CONTEXT_MAX_DEPTH)
         HALT_ERROR(SANITY_CHECK_FAILED, "state stack overflow");
 
     /* push state */
-    g_svc_cx_state[g_svc_cx_state_ptr].src_id = src_id;
-    g_svc_cx_state[g_svc_cx_state_ptr].type = type;
-    g_svc_cx_state[g_svc_cx_state_ptr].src_sp = src_sp;
-    ++g_svc_cx_state_ptr;
+    g_svc_cx_states[g_svc_cx_current_tid][g_svc_cx_state_ptr].src_id = src_id;
+    g_svc_cx_states[g_svc_cx_current_tid][g_svc_cx_state_ptr].type = type;
+    g_svc_cx_states[g_svc_cx_current_tid][g_svc_cx_state_ptr].src_sp = src_sp;
+    ++g_svc_cx_state_ptrs[g_svc_cx_current_tid];
 
     /* save curr stack pointer for the src box */
         g_svc_cx_curr_sp[src_id] = src_sp;
@@ -81,12 +89,14 @@ static void inline svc_cx_push_state(uint8_t src_id, uint8_t type, uint32_t *src
 
 static inline void svc_cx_pop_state(uint8_t dst_id, uint32_t *dst_sp)
 {
+    const int g_svc_cx_state_ptr = g_svc_cx_state_ptrs[g_svc_cx_current_tid];
+
     /* check state stack underflow */
     if(!g_svc_cx_state_ptr)
         HALT_ERROR(SANITY_CHECK_FAILED, "state stack underflow");
 
     /* pop state */
-    --g_svc_cx_state_ptr;
+    --g_svc_cx_state_ptrs[g_svc_cx_current_tid];
 
     /* save curr stack pointer for the dst box */
     uint32_t dst_sp_align = (dst_sp[7] & 0x4) ? 1 : 0;

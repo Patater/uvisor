@@ -20,8 +20,11 @@
 #include "debug.h"
 
 /* state variables */
-TBoxCx    g_svc_cx_state[UVISOR_SVC_CONTEXT_MAX_DEPTH];
-int       g_svc_cx_state_ptr;
+//TBoxCx    g_svc_cx_state[UVISOR_SVC_CONTEXT_MAX_DEPTH];
+/* XXX It is stupid to statically allocate these. */
+TBoxCx g_svc_cx_states[UVISOR_MAX_THREADS][UVISOR_SVC_CONTEXT_MAX_DEPTH];
+size_t g_svc_cx_current_tid;
+int       g_svc_cx_state_ptrs[UVISOR_MAX_THREADS]; /* This is the top of context stack pointer which is per thread */
 uint32_t *g_svc_cx_curr_sp[UVISOR_MAX_BOXES];
 uint32_t *g_svc_cx_context_ptr[UVISOR_MAX_BOXES];
 uint8_t g_active_box;

@@ -71,6 +71,8 @@ static void debug_cx_state(int _indent)
     }
     _sp[i] = '\0';
 
+    const int g_svc_cx_state_ptr = g_svc_cx_state_ptrs[g_svc_cx_current_tid];
+
     /* print state stack */
     if (!g_svc_cx_state_ptr)
     {
@@ -81,8 +83,8 @@ static void debug_cx_state(int _indent)
         for (i = 0; i < g_svc_cx_state_ptr; i++)
         {
             dprintf("%sState %d\n\r",        _sp, i);
-            dprintf("%s  src_id %d\n\r",     _sp, g_svc_cx_state[i].src_id);
-            dprintf("%s  src_sp 0x%08X\n\r", _sp, g_svc_cx_state[i].src_sp);
+            dprintf("%s  src_id %d\n\r",     _sp, g_svc_cx_states[g_svc_cx_current_tid][i].src_id);
+            dprintf("%s  src_sp 0x%08X\n\r", _sp, g_svc_cx_states[g_svc_cx_current_tid][i].src_sp);
         }
     }
 
@@ -108,6 +110,7 @@ static void debug_cx_state(int _indent)
 void debug_cx_switch_in(void)
 {
     int i;
+    const int g_svc_cx_state_ptr = g_svc_cx_state_ptrs[g_svc_cx_current_tid];
 
     /* indent debug messages linearly with the nesting depth */
     dprintf("\n\r");
@@ -123,6 +126,7 @@ void debug_cx_switch_in(void)
 void debug_cx_switch_out(void)
 {
     int i;
+    const int g_svc_cx_state_ptr = g_svc_cx_state_ptrs[g_svc_cx_current_tid];
 
     /* indent debug messages linearly with the nesting depth */
     dprintf("\n\r<--");

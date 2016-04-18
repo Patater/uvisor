@@ -54,3 +54,21 @@ void uvisor_privcall_version(uint32_t *version)
     void *ctx = (void *)version;
     uvisor_privcall_dispatch(UVISOR_PRIVCALL_VERSION, ctx);
 }
+
+void uvisor_privcall_thread_alloc(uint32_t thread_id)
+{
+    void *ctx = (void *)thread_id;
+    uvisor_privcall_dispatch(UVISOR_PRIVCALL_THREAD_ALLOC, ctx);
+}
+
+void uvisor_privcall_thread_free(uint32_t thread_id)
+{
+    void *ctx = (void *)thread_id;
+    uvisor_privcall_dispatch(UVISOR_PRIVCALL_THREAD_FREE, ctx);
+}
+
+void uvisor_privcall_thread_switch(uint32_t thread_id)
+{
+    void *ctx = (void *)thread_id;
+    uvisor_privcall_dispatch(UVISOR_PRIVCALL_THREAD_SWITCH, ctx);
+}

@@ -120,6 +120,9 @@
 
 /* TODO Privcall exports should go in their own header */
 #define UVISOR_PRIVCALL_VERSION       0
+#define UVISOR_PRIVCALL_THREAD_ALLOC  1
+#define UVISOR_PRIVCALL_THREAD_FREE   2
+#define UVISOR_PRIVCALL_THREAD_SWITCH 3
 void uvisor_privcall_dispatch(size_t num, void *ctx);
 
 /* SVC immediate values for hardcoded table (call from unprivileged) */
