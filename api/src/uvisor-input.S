@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 .globl uvisor_init
+.globl uvisor_privcall
 .globl uvisor_config
 .globl uvisor_ctx
 .type  uvisor_init, %function
@@ -26,6 +27,12 @@
 .section .uvisor.main, "x"
     .thumb
     .thumb_func
+
+/* The uvisor_privcall table comes 0x100 bytes after uvisor_init. If
+ * uvisor_init ever becomes too large that 0x100 bytes isn't enough, a linker
+ * error will be generated when the linker script tries to move "." backwards,
+ * making uvisor_privcall overlap with main_entry. */
+.set uvisor_privcall, uvisor_init + 0x100
 
 uvisor_init:
     /* uvisor - precompiled blob */

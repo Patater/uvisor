@@ -54,7 +54,10 @@ SECTIONS
 {
     .text :
     {
+        __code_start__ = .;
         *(.text.main_entry)
+        . = __code_start__ + 0x100;
+        KEEP(*(.rodata.uvisor_privcall))
         *(.text*)
         *(.rodata*)
         . = ALIGN(512);
