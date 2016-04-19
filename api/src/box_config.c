@@ -48,3 +48,9 @@ void uvisor_stupid_pendsv_register(void (*f)(void))
 {
     UVISOR_SVC(UVISOR_SVC_ID_STUPID_PENDSV_REGISTER, "", f);
 }
+
+void uvisor_privcall_version(uint32_t *version)
+{
+    void *ctx = (void *)version;
+    uvisor_privcall_dispatch(UVISOR_PRIVCALL_VERSION, ctx);
+}

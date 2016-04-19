@@ -118,6 +118,10 @@
 #define UVISOR_SVC_ID_STUPID_SYSTICK_REGISTER  UVISOR_SVC_CUSTOM_TABLE(23)
 #define UVISOR_SVC_ID_STUPID_PENDSV_REGISTER   UVISOR_SVC_CUSTOM_TABLE(24)
 
+/* TODO Privcall exports should go in their own header */
+#define UVISOR_PRIVCALL_VERSION       0
+void uvisor_privcall_dispatch(size_t num, void *ctx);
+
 /* SVC immediate values for hardcoded table (call from unprivileged) */
 #define UVISOR_SVC_ID_UNVIC_OUT        UVISOR_SVC_FIXED_TABLE(0, 0)
 #define UVISOR_SVC_ID_CX_IN(nargs)     UVISOR_SVC_FIXED_TABLE(1, nargs)

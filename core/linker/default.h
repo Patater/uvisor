@@ -55,6 +55,8 @@ SECTIONS
     .text :
     {
         *(.text.main_entry)
+        . = ALIGN(0x100);
+        KEEP(*(.text.privcall_dispatch))
         *(.text*)
         *(.rodata*)
         . = ALIGN(512);

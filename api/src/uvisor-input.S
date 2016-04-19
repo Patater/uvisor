@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 .globl uvisor_init
+.globl uvisor_privcall_dispatch
 .globl uvisor_config
 .globl uvisor_ctx
 .type  uvisor_init, %function
@@ -23,6 +24,9 @@
 .section .uvisor.main, "x"
     .thumb
     .thumb_func
+
+/* This is a lame hack. We'll have to do besser. */
+.set uvisor_privcall_dispatch, 0x500
 
 uvisor_init:
     /* uvisor - precompiled blob */

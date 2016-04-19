@@ -99,3 +99,22 @@ void UVISOR_NAKED UVISOR_NORETURN isr_default_handler(void)
           [unvic_out] "i" ((UVISOR_SVC_ID_UNVIC_OUT) & 0xFF)
     );
 }
+
+typedef void (*TPrivcall)(void*);
+
+static void privcall_version(void *ctx)
+{
+    uint32_t *version = (uint32_t *)ctx;
+
+    *version = 0;
+}
+
+static const TPrivcall privcalls[] =
+{
+    privcall_version,       // 0
+};
+
+void privcall_dispatch(size_t num, void *ctx)
+{
+    privcalls[num](ctx);
+}
