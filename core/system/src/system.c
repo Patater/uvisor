@@ -110,6 +110,8 @@ static void privcall_thread_alloc(void *ctx)
 {
     uint32_t thread_id = (uint32_t)ctx;
 
+    DPRINTF("PRIVCALL new thread %d in box %d\r\n", thread_id, g_active_box);
+
     /* Allocate resources in uVisor for thread */
     /* Maybe can use our Tier-1 allocator? It's per-process and would prevent a
      * rougue process from stealing the ability to create more threads from
@@ -139,6 +141,8 @@ static void privcall_thread_switch(void *ctx)
     g_svc_cx_current_tid = thread_id;
 
     uint8_t dst_box = thread_to_box_map[g_svc_cx_current_tid];
+
+    DPRINTF("PRIVCALL switching to thread %d in box %d from box %d\r\n", thread_id, dst_box, g_active_box);
 
     if (g_active_box != dst_box)
     {
