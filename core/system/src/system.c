@@ -130,6 +130,7 @@ static void privcall_thread_free(void *ctx)
     (void)thread_id;
 }
 
+extern void stupid_cx_switch(uint8_t dst_box, uint32_t thread_id);
 static void privcall_thread_switch(void *ctx)
 {
     uint32_t thread_id = (uint32_t)ctx;
