@@ -15,6 +15,9 @@
  * limitations under the License.
  */
 #include "api/inc/export_table_exports.h"
+#include "api/inc/box_mains.h"
+
+static TUvisorExportTable * __uvisor_export_table;
 
 int uvisor_lib_init(void)
 {
@@ -25,20 +28,39 @@ int uvisor_lib_init(void)
 
     uintptr_t uvisor_config_addr = (uintptr_t) &uvisor_config;
 
-    TUvisorExportTable * uvisor_export_table = (TUvisorExportTable *) (uvisor_config_addr - uvisor_export_table_size);
+    __uvisor_export_table = (TUvisorExportTable *) (uvisor_config_addr - uvisor_export_table_size);
 
-    if (uvisor_export_table->magic != UVISOR_EXPORT_MAGIC) {
+    if (__uvisor_export_table->magic != UVISOR_EXPORT_MAGIC) {
         /* We couldn't find the magic. */
         return -1;
     }
 
-    if (uvisor_export_table->version != UVISOR_EXPORT_VERSION) {
+    if (__uvisor_export_table->version != UVISOR_EXPORT_VERSION) {
         /* The version we understand is not the version we found. */
         return -1;
     }
 
     extern void osRegisterThreadObserver(const ThreadObserver *);
-    osRegisterThreadObserver(&uvisor_export_table->thread_observer);
+    osRegisterThreadObserver(&__uvisor_export_table->thread_observer);
+
+    return 0;
+}
+
+int uvisor_lib_init_post(void)
+{
+    /* XXX Where should this be called from? Some place privileged, but not in
+     * an ISR. What are the options? If there are no ways to do this, since we
+     * would would be in an SVC (or IRQ) when privileged for all times after
+     * the os has been initialized, then perhaps we need to deprivilege to call
+     * the osThreadCreate function and then return back to our box_mains_start
+     * loop. We could also look into why osThreadCreate doesn't want to be
+     * called from an ISR. My guess is something to do with stacks in the
+     * context of context switching. */
+
+    /* XXX Assert that export table is non-0 */
+
+    /* Start all the box main threads. */
+    box_mains_start(__uvisor_export_table->set_thread_creation_context);
 
     return 0;
 }

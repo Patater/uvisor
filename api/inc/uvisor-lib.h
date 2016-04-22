@@ -45,6 +45,11 @@
  * what to do with any failures. */
 UVISOR_EXTERN int uvisor_lib_init(void);
 
+/* XXX Call this after the OS has been initialized, but before the OS starts.
+ * TODO Come up with a better explanation for this that acheives the above
+ * without being too specific. */
+UVISOR_EXTERN int uvisor_lib_init_post(void);
+
 #include "api/inc/page_allocator.h"
 
 /* Include all exported header files used by uVisor internally.
