@@ -29,6 +29,8 @@ typedef struct {
 #define UVISOR_MAX_THREADS 20
 static UvisorThreadContext thread[UVISOR_MAX_THREADS];
 
+static int32_t g_thread_creation_context = -1;
+
 static int thread_ctx_valid(UvisorThreadContext *context)
 {
     /* check if context pointer points into the array */
@@ -54,7 +56,7 @@ static void *thread_create(int id, void * c)
     if (ii < UVISOR_MAX_THREADS) {
         thread[ii].thread_id = id;
         /* remember the process id as well */
-        thread[ii].process_id = g_active_box;
+        thread[ii].process_id = g_thread_creation_context == -1 ? g_active_box : g_thread_creation_context;
         /* fall back to the process heap if ctx is NULL */
         thread[ii].allocator = context ? context : index->box_heap;
         return &thread[ii];
@@ -106,6 +108,11 @@ static void thread_switch(void * c)
     }
 }
 
+static void set_thread_creation_context(int32_t box_id)
+{
+    g_thread_creation_context = box_id;
+}
+
 /* This table must be located at the end of the uVisor binary so that this
  * table can be exported correctly. Placing this table into the .export_table
  * section locates this table at the end of the uVisor binary. */
@@ -119,5 +126,6 @@ static const TUvisorExportTable __uvisor_export_table = {
         .thread_destroy = thread_destroy,
         .thread_switch = thread_switch,
     },
+    .set_thread_creation_context = set_thread_creation_context,
     .size = sizeof(TUvisorExportTable)
 };
