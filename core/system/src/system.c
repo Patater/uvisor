@@ -138,7 +138,6 @@ static void privcall_thread_switch(void *ctx)
 
     /* There is one of these for every thread. There is also one of these per
      * box, for handling interrupts. */
-    g_svc_cx_current_tid = thread_id;
 
     uint8_t dst_box = thread_to_box_map[g_svc_cx_current_tid];
 
@@ -146,8 +145,13 @@ static void privcall_thread_switch(void *ctx)
 
     if (g_active_box != dst_box)
     {
-        /* Switch to new MPU context. */
-        vmpu_switch(g_active_box, dst_box);
+        /* Switch to next thread context and next MPU context. */
+        stupid_cx_switch(dst_box, thread_id);
+    }
+    else
+    {
+        /* Switch to next thread context. */
+        g_svc_cx_current_tid = thread_id;
     }
 }
 

@@ -30,6 +30,7 @@ typedef enum {
     TBOXCX_INVALID = 0,
     TBOXCX_SECURE_GATEWAY,
     TBOXCX_IRQ,
+    TBOXCX_THREAD_SWITCH,
     __TBOXCXTYPE_MAX /* The number of possible box context types */
 } TBoxCxType;
 
@@ -101,6 +102,9 @@ static inline void svc_cx_pop_state(uint8_t dst_id, uint32_t *dst_sp)
     /* save curr stack pointer for the dst box */
     uint32_t dst_sp_align = (dst_sp[7] & 0x4) ? 1 : 0;
     g_svc_cx_curr_sp[dst_id] = dst_sp + SVC_CX_EXC_SF_SIZE + dst_sp_align;
+    /* XXX In the thread switching case, we may not want the above stack
+     * pointer adjustment, as it pops off the exception stack size, which we'll
+     * be having RTX do for us.. */
 
     /* update current box id */
     g_active_box = svc_cx_get_src_id();

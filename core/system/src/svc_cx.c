@@ -145,6 +145,31 @@ uint32_t __svc_cx_switch_in(uint32_t *svc_sp, uint32_t svc_pc,
     return 0;
 }
 
+void stupid_cx_switch(uint8_t dst_id, uint32_t dst_thread_id)
+{
+    /* TODO: Save old uVisor state. Restore uVisor state of destination box */
+
+    uint8_t src_id = g_active_box;
+    uint32_t *dst_sp;
+    uint32_t *src_sp = __get_PSP(); /* XXX not confident in this */
+
+    /* Push for the src thread ID */
+    svc_cx_push_state(g_active_box, TBOXCX_THREAD_SWITCH, src_sp, dst_id);
+
+    /* Before popping, we set current thread ID to the destination thread ID.
+     * This will effectively cause g_svc_cx_state_ptr to change, since we
+     * always look up g_svc_cx_context_ptr based on g_svc_cx_current_tid. */
+    g_svc_cx_current_tid = dst_thread_id;
+
+    svc_cx_pop_state(dst_id, dst_sp)
+
+    /* Set the context stack pointer for the dst box. */
+    *(__uvisor_config.uvisor_box_context) = g_svc_cx_context_ptr[dst_id];
+
+    dst_sp = svc_cx_get_curr_sp(dst_id);
+    __set_PSP((uint32_t) dst_sp);
+}
+
 void UVISOR_NAKED svc_cx_switch_out(uint32_t *svc_sp)
 {
     asm volatile(
