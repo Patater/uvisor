@@ -42,6 +42,7 @@ extern TBoxCx    g_svc_cx_state[UVISOR_SVC_CONTEXT_MAX_DEPTH];
 extern int       g_svc_cx_state_ptr;
 extern uint32_t *g_svc_cx_curr_sp[UVISOR_MAX_BOXES];
 extern uint32_t *g_svc_cx_context_ptr[UVISOR_MAX_BOXES];
+extern uint32_t g_active_tid;
 extern uint8_t g_active_box;
 
 static UVISOR_FORCEINLINE uint8_t svc_cx_get_src_id(void)

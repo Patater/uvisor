@@ -25,6 +25,9 @@
 
 struct uvisor_privcall_table {
     uint32_t version;
+    void (*thread_alloc)(uint32_t thread_id);
+    void (*thread_free)(uint32_t thread_id);
+    void (*thread_switch)(uint32_t thread_id);
 };
 
 extern const struct uvisor_privcall_table uvisor_privcall;

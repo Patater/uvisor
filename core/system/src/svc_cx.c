@@ -24,6 +24,7 @@ TBoxCx    g_svc_cx_state[UVISOR_SVC_CONTEXT_MAX_DEPTH];
 int       g_svc_cx_state_ptr;
 uint32_t *g_svc_cx_curr_sp[UVISOR_MAX_BOXES];
 uint32_t *g_svc_cx_context_ptr[UVISOR_MAX_BOXES];
+uint32_t g_active_tid;
 uint8_t g_active_box;
 
 void UVISOR_NAKED svc_cx_thunk(void)
