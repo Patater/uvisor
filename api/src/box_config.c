@@ -34,6 +34,13 @@ int uvisor_box_namespace(int box_id, char *box_namespace, size_t length)
     return UVISOR_SVC(UVISOR_SVC_ID_BOX_NAMESPACE_FROM_ID, "", box_id, box_namespace, length);
 }
 
+int uvisor_box_init(int box_id)
+{
+    /* We need to refer to the box specific place somehow. */
+    extern OS_TID __uvisor_box_main_id;
+    extern U8 __uvisor_box_main_priority = (priority) + 4;
+}
+
 void uvisor_stupid_backdoor_register(void (*f)(void))
 {
     UVISOR_SVC(UVISOR_SVC_ID_STUPID_BACKDOOR_REGISTER, "", f);
