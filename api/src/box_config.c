@@ -37,8 +37,9 @@ int uvisor_box_namespace(int box_id, char *box_namespace, size_t length)
 int uvisor_box_init(int box_id)
 {
     /* We need to refer to the box specific place somehow. */
-    extern OS_TID __uvisor_box_main_id;
-    extern U8 __uvisor_box_main_priority = (priority) + 4;
+    //extern OS_TID __uvisor_box_main_id;
+    //extern U8 __uvisor_box_main_priority;
+    return 0;
 }
 
 void uvisor_stupid_backdoor_register(void (*f)(void))

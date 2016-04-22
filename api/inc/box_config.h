@@ -103,9 +103,11 @@ UVISOR_EXTERN const uint32_t __uvisor_mode;
 #define UVISOR_BOX_NAMESPACE(box_namespace) \
     static const char *const __uvisor_box_namespace = box_namespace
 
+#if 0
 #define UVISOR_BOX_MAIN(box_main, priority) \
     static OS_TID __uvisor_box_main_id; \
     static U8 __uvisor_box_main_priority = (priority) + 4;
+#endif
 
 
 /* Return the numeric box ID of the current box. */
