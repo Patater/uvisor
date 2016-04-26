@@ -155,6 +155,33 @@ typedef struct
     uint32_t acl_count;
 } UVISOR_PACKED UvisorBoxConfig;
 
+typedef struct
+{
+    /* Pointer to the user context */
+    void * ctx;
+    /* Pointer to the box heap */
+    void * process_heap;
+    /* Size of the box heap */
+    uint32_t process_heap_size;
+    /* Pointer to the currently active heap */
+    void * active_heap;
+    /* Cache of the box_id */
+    int box_id;
+} UVISOR_PACKED UvisorBoxIndex;
+
+/* XXX Move into CMSIS-RTOS! */
+typedef struct
+{
+    UvisorBoxIndex index;
+
+    /* Id of the mutex */
+    void * mutex_id;
+    /* Pointer to the data of the mutex */
+    void * mutex;
+    /* Internal data of the mutex */
+    int32_t mutex_data[4];
+} UVISOR_PACKED UvisorBoxIndexOS;
+
 /*
  * only use this macro for rounding const values during compile time:
  * for variables please use uvisor_region_bits(x) instead
