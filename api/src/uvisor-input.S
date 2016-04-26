@@ -17,7 +17,7 @@
 .globl uvisor_init
 .globl uvisor_privcall
 .globl uvisor_config
-.globl uvisor_ctx
+.globl __uvisor_ps
 .type  uvisor_init, %function
 .weak  __uvisor_mode
 .weak  SVC_Handler
@@ -128,7 +128,7 @@ SysTick_Handler:
 
 .section .uninitialized
 __uvisor_box_context:
-uvisor_ctx:
+__uvisor_ps:
     .long 0
 
 .section .keep.uvisor.bss.main, "awM", @nobits
