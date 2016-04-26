@@ -122,7 +122,7 @@ PendSV_Handler:
 SysTick_Handler:
     .long 0
 
-.section .bss
+.section .uninitialized
 __uvisor_box_context:
 uvisor_ctx:
     .long 0
