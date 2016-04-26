@@ -94,7 +94,7 @@ __uvisor_mode:
     /* uvisor default mode - user can override weak reference */
     .long 0
 
-.section .bss
+.section .uninitialized
 __uvisor_box_context:
 uvisor_ctx:
     .long 0
