@@ -302,6 +302,7 @@ static void vmpu_load_boxes(void)
 
     /* load box 0 */
     vmpu_load_box(0);
+    *(__uvisor_config.uvisor_box_context) = g_svc_cx_context_ptr[0];
 
     DPRINTF("vmpu_load_boxes [DONE]\n");
 }
