@@ -155,6 +155,27 @@ typedef struct {
     uint32_t acl_count;
 } UVISOR_PACKED UvisorBoxConfig;
 
+typedef struct
+{
+    /* pointer to the user context */
+    void *ctx;
+    /* pointer to the box heap */
+    void *process_heap;
+    /* size of the box heap */
+    uint32_t process_heap_size;
+    /* pointer to the currently active heap */
+    void *active_heap;
+    /* cache of the box_id */
+    int box_id;
+
+    /* id of the mutex */
+    void *mutex_id;
+    /* pointer to the data of the mutex */
+    void *mutex;
+    /* internal data of the mutex */
+    int32_t mutex_data[4];
+} UVISOR_PACKED UvisorBoxIndex;
+
 /*
  * only use this macro for rounding const values during compile time:
  * for variables please use uvisor_region_bits(x) instead
