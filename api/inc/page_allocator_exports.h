@@ -18,6 +18,7 @@
 #define __UVISOR_API_PAGE_ALLOCATOR_EXPORTS_H__
 
 #include <stdint.h>
+#include <stddef.h>
 #include "halt_exports.h"
 
 

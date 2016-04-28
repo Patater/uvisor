@@ -66,6 +66,8 @@ UVISOR_EXTERN const uint32_t __uvisor_mode;
 
 #define UVISOR_BOX_NAMESPACE(...)
 
+#define UVISOR_BOX_HEAPSIZE(heap_size)
+
 /* uvisor-lib/interrupts.h */
 
 #define vIRQ_SetVector(irqn, vector)        NVIC_SetVector((IRQn_Type) (irqn), (uint32_t) (vector))
