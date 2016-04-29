@@ -159,6 +159,72 @@ void vmpu_acl_add(uint8_t box_id, void* start, uint32_t size, UvisorBoxAcl acl)
             HALT_ERROR(SANITY_CHECK_FAILED, "ACL sanity check failed [%i]\n", res);
 }
 
+void vmpu_acl_stack(uint8_t box_id, uint32_t context_size, uint32_t stack_size)
+{
+    /* handle main box */
+    if(!box_id)
+    {
+        DPRINTF("ctx=%i stack=%i\n\r", context_size, stack_size);
+        /* non-important sanity checks */
+        assert(context_size == 0);
+        assert(stack_size == 0);
+
+        /* assign main box stack pointer to existing
+         * unprivileged stack pointer */
+        g_svc_cx_curr_sp[0] = (uint32_t*)__get_PSP();
+        g_svc_cx_context_ptr[0] = NULL;
+        return;
+    }
+
+    /* ensure stack & context alignment */
+    stack_size = UVISOR_REGION_ROUND_UP(UVISOR_MIN_STACK(stack_size));
+
+    /* add stack ACL */
+    vmpu_acl_add(
+        box_id,
+        (void*)g_box_mem_pos,
+        stack_size,
+        UVISOR_TACLDEF_STACK
+    );
+
+    /* set stack pointer to box stack size minus guard band */
+    g_box_mem_pos += stack_size;
+    g_svc_cx_curr_sp[box_id] = (uint32_t*)g_box_mem_pos;
+    /* add stack protection band */
+    g_box_mem_pos += UVISOR_STACK_BAND_SIZE;
+
+    /* add context ACL if needed */
+    if(!context_size)
+        g_svc_cx_context_ptr[box_id] = NULL;
+    else
+    {
+        context_size = UVISOR_REGION_ROUND_UP(context_size);
+        g_svc_cx_context_ptr[box_id] = (uint32_t*)g_box_mem_pos;
+
+        DPRINTF("erasing box context at 0x%08X (%u bytes)\n",
+            g_box_mem_pos,
+            context_size
+        );
+
+        /* reset uninitialized secured box context */
+        memset(
+            (void *) g_box_mem_pos,
+            0,
+            context_size
+        );
+
+        /* add context ACL */
+        vmpu_acl_add(
+            box_id,
+            (void*)g_box_mem_pos,
+            context_size,
+            UVISOR_TACLDEF_DATA
+        );
+
+        g_box_mem_pos += context_size + UVISOR_STACK_BAND_SIZE;
+    }
+}
+
 void vmpu_switch(uint8_t src_box, uint8_t dst_box)
 {
     /* check for errors */

@@ -217,6 +217,14 @@ static void vmpu_load_boxes(void)
         /* load box ACLs in table */
         DPRINTF("box[%i] ACL list:\n", box_id);
 
+        /* add ACL's for all box stacks, the actual start addesses and
+         * sizes are resolved later in vmpu_initialize_stacks */
+        vmpu_acl_stack(
+            box_id,
+            (*box_cfgtbl)->context_size,
+            (*box_cfgtbl)->stack_size
+        );
+
         /* enumerate box ACLs */
         if( (region = (*box_cfgtbl)->acl_list)!=NULL )
         {
