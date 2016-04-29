@@ -18,6 +18,7 @@
 #define __UVISOR_API_BOX_CONFIG_H__
 
 #include "api/inc/uvisor_exports.h"
+#include "api/inc/BoxThread.h"
 #include <stddef.h>
 #include <stdint.h>
 
@@ -68,7 +69,14 @@ UVISOR_EXTERN const uint32_t __uvisor_mode;
         acl_list_count \
     }; \
     \
-    extern const __attribute__((section(".keep.uvisor.cfgtbl_ptr"), aligned(4))) void * const box_name ## _cfg_ptr = &box_name ## _cfg;
+    extern const __attribute__((section(".keep.uvisor.cfgtbl_ptr"), aligned(4))) void * const box_name ## _cfg_ptr = &box_name ## _cfg; \
+    /* XXX This means we can only do C++ boxes now... */ \
+    static BoxThread box_name ## _thread( \
+        __uvisor_box_main, \
+        __uvisor_box_main_priority, \
+        UVISOR_MIN_STACK(stack_size), \
+        box_name ## _reserved);
+        // XXX TODO make sure that the stack we are providing is correct here
 
 #define __UVISOR_BOX_CONFIG_NOCONTEXT(box_name, acl_list, stack_size) \
     __UVISOR_BOX_CONFIG(box_name, acl_list, UVISOR_ARRAY_COUNT(acl_list), stack_size, 0) \
@@ -103,12 +111,9 @@ UVISOR_EXTERN const uint32_t __uvisor_mode;
 #define UVISOR_BOX_NAMESPACE(box_namespace) \
     static const char *const __uvisor_box_namespace = box_namespace
 
-#if 0
 #define UVISOR_BOX_MAIN(box_main, priority) \
-    static OS_TID __uvisor_box_main_id; \
-    static U8 __uvisor_box_main_priority = (priority) + 4;
-#endif
-
+    static void (*const __uvisor_box_main)(const void *) = box_main; \
+    static const int __uvisor_box_main_priority = priority; \
 
 /* Return the numeric box ID of the current box. */
 UVISOR_EXTERN int uvisor_box_id_self(void);
