@@ -94,3 +94,79 @@ UvisorAllocator uvisor_get_allocator(void)
     }
     return __uvisor_ps->index.active_heap;
 }
+
+#define OP_MALLOC  0
+#define OP_REALLOC 1
+#define OP_FREE    2
+
+#define HEAP_ACTIVE  0
+#define HEAP_PROCESS 1
+
+static void * memory(void * ptr, size_t size, int heap, int operation)
+{
+    /* buffer the return value */
+    void * ret = NULL;
+    /* initialize allocator */
+    if (init_allocator()) {
+        return NULL;
+    }
+    /* check if we need to aquire the mutex */
+    int mutexed = (is_kernel_initialized() && (heap == HEAP_PROCESS));
+    void * allocator = (heap == HEAP_PROCESS) ?
+                       (__uvisor_ps->index.process_heap) :
+                       (__uvisor_ps->index.active_heap);
+
+    /* aquire the mutex if required */
+    if (mutexed) {
+        osMutexWait(__uvisor_ps->mutex_id, osWaitForever);
+    }
+    /* perform the required operation */
+    switch(operation)
+    {
+        case OP_MALLOC:
+            ret = uvisor_malloc(allocator, size);
+            break;
+        case OP_REALLOC:
+            ret = uvisor_realloc(allocator, ptr, size);
+            break;
+        case OP_FREE:
+            uvisor_free(allocator, ptr);
+            break;
+        default:
+            break;
+    }
+    /* release the mutex if required */
+    if (mutexed) {
+        osMutexRelease(__uvisor_ps->mutex_id);
+    }
+    return ret;
+}
+
+/* wrapped memory management functions */
+#if defined (__CC_ARM)
+void * $Sub$$_malloc_r(struct _reent * r, size_t size) {
+    return memory(r, size, HEAP_ACTIVE, OP_MALLOC);
+}
+void * $Sub$$_realloc_r(struct _reent * r, void * ptr, size_t size) {
+    (void)r;
+    return memory(ptr, size, HEAP_ACTIVE, OP_REALLOC);
+}
+void $Sub$$_free_r(struct _reent * r, void * ptr) {
+    (void)r;
+    memory(ptr, 0, HEAP_ACTIVE, OP_FREE);
+}
+#elif defined (__GNUC__)
+void * __wrap__malloc_r(struct _reent * r, size_t size) {
+    return memory(r, size, HEAP_ACTIVE, OP_MALLOC);
+}
+void * __wrap__realloc_r(struct _reent * r, void * ptr, size_t size) {
+    (void)r;
+    return memory(ptr, size, HEAP_ACTIVE, OP_REALLOC);
+}
+void __wrap__free_r(struct _reent * r, void * ptr) {
+    (void)r;
+    memory(ptr, 0, HEAP_ACTIVE, OP_FREE);
+}
+#elif defined (__ICCARM__)
+#   warning "Using uVisor allocator is not available for IARCC. Falling back to newlib allocator."
+#endif
