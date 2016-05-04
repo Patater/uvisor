@@ -68,3 +68,67 @@ UvisorAllocator uvisor_get_allocator(void)
     if (init_allocator()) return NULL;
     return __uvisor_ps->active_heap;
 }
+
+#define OP_MALLOC  0
+#define OP_REALLOC 1
+#define OP_FREE    2
+
+static void *memory(void *ptr, size_t size, void **heap, int operation)
+{
+    /* buffer the return value */
+    void *ret = NULL;
+    /* initialize allocator */
+    if (init_allocator()) return NULL;
+    /* check if we need to aquire the mutex */
+    int mutexed = (is_kernel_initialized() && (*heap == __uvisor_ps->process_heap));
+
+    /* aquire the mutex if required */
+    if (mutexed) osMutexWait(__uvisor_ps->mutex_id, osWaitForever);
+    /* perform the required operation */
+    switch(operation)
+    {
+        case OP_MALLOC:
+            ret = uvisor_malloc(*heap, size);
+            break;
+        case OP_REALLOC:
+            ret = uvisor_realloc(*heap, ptr, size);
+            break;
+        case OP_FREE:
+            uvisor_free(*heap, ptr);
+            break;
+        default:
+            break;
+    }
+    /* release the mutex if required */
+    if (mutexed) osMutexRelease(__uvisor_ps->mutex_id);
+    return ret;
+}
+
+/* wrapped memory management functions */
+#if defined (__CC_ARM)
+void *$Sub$$_malloc_r(struct _reent*r, size_t size) {
+    return memory(r, size, &(__uvisor_ps->active_heap), OP_MALLOC);
+}
+void *$Sub$$_realloc_r(struct _reent*r, void *ptr, size_t size) {
+    (void)r;
+    return memory(ptr, size, &(__uvisor_ps->active_heap), OP_REALLOC);
+}
+void $Sub$$_free_r(struct _reent*r, void *ptr) {
+    (void)r;
+    memory(ptr, 0, &(__uvisor_ps->active_heap), OP_FREE);
+}
+#elif defined (__GNUC__)
+void *__wrap__malloc_r(struct _reent*r, size_t size) {
+    return memory(r, size, &(__uvisor_ps->active_heap), OP_MALLOC);
+}
+void *__wrap__realloc_r(struct _reent*r, void *ptr, size_t size) {
+    (void)r;
+    return memory(ptr, size, &(__uvisor_ps->active_heap), OP_REALLOC);
+}
+void __wrap__free_r(struct _reent*r, void *ptr) {
+    (void)r;
+    memory(ptr, 0, &(__uvisor_ps->active_heap), OP_FREE);
+}
+#elif defined (__ICCARM__)
+#   warning "Using uVisor allocator is not available for IARCC. Falling back to newlib allocator."
+#endif
