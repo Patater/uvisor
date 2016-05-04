@@ -18,6 +18,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <reent.h>
+#include <string.h>
 
 #include "uvisor-lib/uvisor-lib.h"
 #include "cmsis_os.h"
@@ -170,3 +171,13 @@ void __wrap__free_r(struct _reent * r, void * ptr) {
 #elif defined (__ICCARM__)
 #   warning "Using uVisor allocator is not available for IARCC. Falling back to newlib allocator."
 #endif
+
+void * malloc_p(size_t size) {
+    return memory(NULL, size, HEAP_PROCESS, OP_MALLOC);
+}
+void * realloc_p(void * ptr, size_t size) {
+    return memory(ptr, size, HEAP_PROCESS, OP_REALLOC);
+}
+void free_p(void * ptr) {
+    memory(ptr, 0, HEAP_PROCESS, OP_FREE);
+}
