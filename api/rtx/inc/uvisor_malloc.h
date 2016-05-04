@@ -26,6 +26,13 @@ extern "C" {
 /** @returns the currently active allocator */
 UvisorAllocator uvisor_get_allocator(void);
 
+/* Allocate memory on the process heap */
+void *malloc_p(size_t size);
+/* Reallocate memory on the process heap */
+void *realloc_p(void *ptr, size_t size);
+/* Free memory on the process heap */
+void free_p(void *ptr);
+
 #ifdef __cplusplus
 }   /* extern "C" */
 #endif
