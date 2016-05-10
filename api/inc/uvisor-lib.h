@@ -31,6 +31,7 @@
 #include "api/inc/disabled.h"
 #include "api/inc/error.h"
 #include "api/inc/interrupts.h"
+#include "api/inc/privcall.h"
 #include "api/inc/register_gateway.h"
 #include "api/inc/secure_access.h"
 #include "api/inc/secure_gateway.h"
