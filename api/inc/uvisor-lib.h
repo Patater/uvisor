@@ -34,13 +34,14 @@
 #include "api/inc/register_gateway.h"
 #include "api/inc/secure_access.h"
 #include "api/inc/secure_gateway.h"
-#include "api/inc/page_allocator.h"
 
 #else /* defined(UVISOR_PRESENT) && UVISOR_PRESENT == 1 */
 
 #include "api/inc/unsupported.h"
 
 #endif /* defined(UVISOR_PRESENT) && UVISOR_PRESENT == 1 */
+
+#include "api/inc/page_allocator_exports.h"
 
 /* Include all exported header files used by uVisor internally.
  * These are included independently on whether uVisor is supported or not by the
