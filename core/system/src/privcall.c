@@ -16,7 +16,7 @@
  */
 #include <uvisor.h>
 #include "vmpu.h"
-#include "api/inc/privcall.h"
+#include "api/inc/privcall_exports.h"
 
 void privcall_box_switch(uint8_t dst_box)
 {

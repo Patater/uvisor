@@ -31,7 +31,6 @@
 #include "api/inc/disabled.h"
 #include "api/inc/error.h"
 #include "api/inc/interrupts.h"
-#include "api/inc/privcall.h"
 #include "api/inc/register_gateway.h"
 #include "api/inc/secure_access.h"
 #include "api/inc/secure_gateway.h"
@@ -49,6 +48,7 @@
  * target platform. */
 #include "api/inc/debug_exports.h"
 #include "api/inc/halt_exports.h"
+#include "api/inc/privcall_exports.h"
 #include "api/inc/svc_exports.h"
 #include "api/inc/svc_gw_exports.h"
 #include "api/inc/unvic_exports.h"
