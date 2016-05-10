@@ -177,6 +177,13 @@ typedef struct
     void *active_heap;
     /* cache of the box_id */
     int box_id;
+
+    /* id of the mutex */
+    void *mutex_id;
+    /* pointer to the data of the mutex */
+    void *mutex;
+    /* internal data of the mutex */
+    int32_t mutex_data[4];
 } UVISOR_PACKED UvisorBoxIndex;
 
 /*
