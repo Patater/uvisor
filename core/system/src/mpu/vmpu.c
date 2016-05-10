@@ -190,6 +190,12 @@ static void vmpu_box_index_init(uint8_t box_id, uint32_t context_size, uint32_t 
     /* active heap pointer is NULL */
     index->active_heap = NULL;
 
+    memset(index->mutex_data, 0, sizeof(index->mutex_data));
+    /* point the mutex pointer to the data */
+    index->mutex = &(index->mutex_data);
+    /* set the id to NULL */
+    index->mutex_id = NULL;
+
     /* cache the box id */
     index->box_id = box_id;
 }
