@@ -59,7 +59,7 @@ static void privcall_thread_free(uint32_t thread_id)
 /* XXX TODO write this function */
 void stupid_cx_switch(uint8_t dst_box, uint32_t thread_id)
 {
-    // vmpu_switch
+    vmpu_switch(g_active_box, dst_box);
 }
 
 static void privcall_thread_switch(uint32_t thread_id)
