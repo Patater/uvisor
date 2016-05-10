@@ -15,7 +15,18 @@
  * limitations under the License.
  */
 #include "api/inc/privcall_exports.h"
+#include <uvisor.h>
+#include "vmpu.h"
+
+void privcall_box_switch(uint8_t dst_box)
+{
+    /* We trust the vmpu_switch function to check the validity of the source
+     * and destination IDs. */
+    vmpu_switch(g_active_box, dst_box);
+}
 
 const struct uvisor_privcall_table uvisor_privcall = {
     .version = UVISOR_PRIVCALL_VERSION,
+    .box_switch = privcall_box_switch,
+    .active_box = &g_active_box,
 };

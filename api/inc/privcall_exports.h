@@ -25,6 +25,8 @@
 
 struct uvisor_privcall_table {
     uint32_t version;
+    void (*box_switch)(uint8_t);
+    uint8_t *active_box;
 };
 
 extern const struct uvisor_privcall_table uvisor_privcall;
