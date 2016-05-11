@@ -93,6 +93,9 @@ void main_entry(void)
         /* finish initialization */
         uvisor_init_post();
 
+        /* XXX */
+        debug_mpu_config();
+
         /* switch to unprivileged mode; this is possible as uvisor code is
          * readable by unprivileged code and only the key-value database is
          * protected from the unprivileged mode */
