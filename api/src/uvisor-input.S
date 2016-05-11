@@ -52,6 +52,10 @@ uvisor_config:
     .long __uvisor_bss_main_start
     .long __uvisor_bss_main_end
 
+    /* Start and end address of OS private bss */
+    .long __uvisor_os_priv_start
+    .long __uvisor_os_priv_end
+
     /* Start and end address of uvisor secure boxes bss */
     .long __uvisor_bss_boxes_start
     .long __uvisor_bss_boxes_end
