@@ -87,13 +87,17 @@ static int vmpu_sanity_checks(void)
     DPRINTF("             (0x%08X (%u bytes) [linker]\n",
             SRAM_OFFSET_START, UVISOR_SRAM_LENGTH);
     assert( __uvisor_config.bss_main_end > __uvisor_config.bss_main_start );
-    assert( VMPU_REGION_SIZE(__uvisor_config.bss_main_start,
-                             __uvisor_config.bss_main_end) == UVISOR_SRAM_LENGTH );
+    // XXX We can't assume that the main region is equal to UVISOR_SRAM_LENGTH,
+    // if the OS can put stuff into the region now.
+    // XXX TODO Think about where uvisor stack is going.
+    //assert( VMPU_REGION_SIZE(__uvisor_config.bss_main_start,
+    //                         __uvisor_config.bss_main_end) == UVISOR_SRAM_LENGTH );
     assert(&__stack_end__ <= __uvisor_config.bss_main_end);
 
     assert( (uint32_t) __uvisor_config.bss_main_start == SRAM_OFFSET_START);
-    assert( (uint32_t) __uvisor_config.bss_main_end == (SRAM_OFFSET_START +
-                                                        UVISOR_SRAM_LENGTH) );
+    // XXX This likewise.
+    //assert( (uint32_t) __uvisor_config.bss_main_end == (SRAM_OFFSET_START +
+    //                                                    UVISOR_SRAM_LENGTH) );
 
     /* verify that secure flash area is accessible and after public code */
     assert(!vmpu_public_flash_addr((uint32_t) __uvisor_config.secure_start));

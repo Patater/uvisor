@@ -695,11 +695,12 @@ void vmpu_arch_init_hw(void)
     );
 
 #if !defined(UVISOR_IN_STANDALONE_SRAM)
-    /* Protect the uVisor SRAM.
-     * This region needs protection only if uVisor shares the SRAM with the
-     * host. The configuration requires that uVisor is right at the beginning of
-     * the SRAM. If not, uVisor would end up owning a memory regions that
-     * contains non-uVisor data. */
+    /* Protect uVisor SRAM (bss_main) as only accessible to privileged mode.
+     *
+     * This region needs protection only if uVisor and the OS share SRAM with
+     * the host. The configuration requires that uVisor and OS private BSS are
+     * right at the beginning of the SRAM. If not, uVisor and the OS would end
+     * up owning memory regions that contains non-uVisor, non-OS data. */
     vmpu_acl_static_region(
         2,
         (void *) SRAM_ORIGIN,
