@@ -30,11 +30,6 @@
 #define UVISOR_ERROR_PAGE_INVALID_PAGE_OWNER    (UVISOR_ERROR_CLASS_PAGE + 104)
 
 
-/* Must be a power of 2 for MPU alignment in ARMv7-M */
-#ifndef UVISOR_PAGE_SIZE
-#   define UVISOR_PAGE_SIZE ((size_t)16 * 1024)
-#endif
-
 /* Returns the rounded up number of pages required to hold `size` */
 #define UVISOR_PAGES_FOR_SIZE(size) \
     ((size + UVISOR_PAGE_SIZE - 1) / UVISOR_PAGE_SIZE)

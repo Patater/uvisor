@@ -134,10 +134,12 @@ ifeq ("$(wildcard  $(CORE_DIR)/uvisor-config.h)","")
 	UVISOR_MAGIC:=0
 	UVISOR_FLASH_LENGTH:=0
 	UVISOR_SRAM_LENGTH:=0
+	UVISOR_PAGE_SIZE:=0
 else
 	UVISOR_MAGIC:=$(shell grep UVISOR_MAGIC $(CORE_DIR)/uvisor-config.h | sed -E 's/^.* (0x[0-9A-Fa-f]+).*$\/\1/')
 	UVISOR_FLASH_LENGTH:=$(shell grep UVISOR_FLASH_LENGTH $(CORE_DIR)/uvisor-config.h | sed -E 's/^.* (0x[0-9A-Fa-f]+).*$\/\1/')
 	UVISOR_SRAM_LENGTH:=$(shell grep UVISOR_SRAM_LENGTH $(CORE_DIR)/uvisor-config.h | sed -E 's/^.* (0x[0-9A-Fa-f]+).*$\/\1/')
+	UVISOR_PAGE_SIZE:=$(shell grep UVISOR_PAGE_SIZE $(CORE_DIR)/uvisor-config.h | sed -E 's/^.* (0x[0-9A-Fa-f]+).*$\/\1/')
 endif
 
 FLAGS_CM4:=-mcpu=cortex-m4 -march=armv7e-m -mthumb
@@ -186,6 +188,7 @@ API_CONFIG:=\
     -DUVISOR_FLASH_LENGTH=$(UVISOR_FLASH_LENGTH) \
     -DUVISOR_SRAM_LENGTH=$(UVISOR_SRAM_LENGTH) \
     -DUVISOR_MAGIC=$(UVISOR_MAGIC) \
+	-DUVISOR_PAGE_SIZE=$(UVISOR_PAGE_SIZE) \
     -DUVISOR_BIN=\"$(CONFIGURATION_PREFIX).bin\"
 
 .PHONY: all fresh configurations release clean ctags

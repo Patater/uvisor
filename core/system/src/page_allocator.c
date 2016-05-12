@@ -70,6 +70,7 @@ void page_allocator_init(void *heap_start, void *heap_end, uint32_t config_page_
     /* align the page size to the next largest power of two for ARMv7-M only */
     const size_t mask = (1 << (vmpu_bits(config_page_size) - 1)) - 1;
     page_size = (config_page_size + mask) & ~mask;
+    page_size = 16*1024;
 
     uint32_t start = (uint32_t)heap_start;
     /* round up to the nearest page aligned memory address */
