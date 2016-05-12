@@ -41,6 +41,9 @@
 uvisor_init:
     /* uvisor - precompiled blob */
     .incbin UVISOR_BIN
+//    .incbin UVISOR_BIN, skip, count
+//uvisor_table:
+//    .incbin UVISOR_BIN, skip, count
 
 uvisor_config:
     /* uvisor expects its configuration section right
