@@ -23,6 +23,9 @@ void privcall_box_switch(uint8_t dst_box)
     /* We trust the vmpu_switch function to check the validity of the source
      * and destination IDs. */
     vmpu_switch(g_active_box, dst_box);
+
+    /* Also need to update uvisor_ctx */
+    g_active_box = dst_box;
 }
 
 const struct uvisor_privcall_table uvisor_privcall = {
