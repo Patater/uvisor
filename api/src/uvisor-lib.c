@@ -38,5 +38,8 @@ int uvisor_post_init(void)
         return -1;
     }
 
+    extern void osRegisterThreadObserver(const ThreadObserver *);
+    osRegisterThreadObserver(&uvisor_export_table->thread_observer);
+
     return 0;
 }
