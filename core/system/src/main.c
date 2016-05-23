@@ -25,7 +25,21 @@ TIsrVector g_isr_vector_prev;
 
 UVISOR_NOINLINE void uvisor_init_pre(void)
 {
-    /* reset uvisor BSS */
+    /* XXX TODO not sure what this old __bss_start and end stuff was. We want
+     * to init all uVisor BSS, which we don't know the addresses of until we
+     * are linked with the user's application. This seems like it was a bug in
+     * uVisor. */
+    /* reset uvisor BSS as found in config */
+    //assert(__uvisor_config.bss_start == &__bss_start__);
+    //assert(__uvisor_config.bss_end == &__bss_end__);
+    memset(
+        __uvisor_config.bss_start,
+        0,
+        VMPU_REGION_SIZE(__uvisor_config.bss_start, __uvisor_config.bss_end)
+    );
+
+    /* reset uvisor BSS in the old way? I don't see how these values make any
+     * sense before linking with the application. */
     memset(
         &__bss_start__,
         0,
