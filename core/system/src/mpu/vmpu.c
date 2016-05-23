@@ -83,6 +83,10 @@ static int vmpu_sanity_checks(void)
         UVISOR_SRAM_LENGTH);
 
     /* Verify that the sections inside the BSS region are disjoint. */
+    DPRINTF("bss_boxes  : @0x%08X (%u bytes) [config]\n",
+        __uvisor_config.bss_boxes_start,
+        VMPU_REGION_SIZE(__uvisor_config.bss_boxes_start,
+                         __uvisor_config.bss_boxes_end));
     assert(__uvisor_config.bss_end > __uvisor_config.bss_start);
     assert(__uvisor_config.bss_main_end > __uvisor_config.bss_main_start);
     assert(__uvisor_config.bss_boxes_end > __uvisor_config.bss_boxes_start);
