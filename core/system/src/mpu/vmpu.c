@@ -100,6 +100,18 @@ static int vmpu_sanity_checks(void)
     assert(&__data_start__ >= __uvisor_config.sram_main_start);
     assert(&__data_end__ < __uvisor_config.sram_main_end);
 
+    /* Verify secure boxes BSS. */
+    DPRINTF("bss_boxes  : @0x%08X (%u bytes) [config]\n",
+        __uvisor_config.bss_boxes_start,
+        VMPU_REGION_SIZE(__uvisor_config.bss_boxes_start,
+                         __uvisor_config.bss_boxes_end));
+    assert(__uvisor_config.bss_boxes_end > __uvisor_config.bss_boxes_start);
+
+    /* Make sure the secure boxes BSS doesn't overlap uVisor's own BSS. The
+     * secure boxes BSS can be located before or after uVisor's own BSS. */
+    assert((__uvisor_config.bss_boxes_start >= __uvisor_config.sram_main_end) ||
+           (__uvisor_config.bss_boxes_end < __uvisor_config.sram_main_start));
+
     /* verify that secure flash area is accessible and after public code */
     assert(!vmpu_public_flash_addr((uint32_t) __uvisor_config.secure_start));
     assert(!vmpu_public_flash_addr((uint32_t) __uvisor_config.secure_end));
@@ -230,6 +242,10 @@ static void vmpu_load_boxes(void)
     const UvisorBoxAclItem *region;
     const UvisorBoxConfig **box_cfgtbl;
     uint8_t box_id;
+
+    /* Initialize secure boxes BSS. */
+    memset(__uvisor_config.bss_boxes_start, 0,
+        VMPU_REGION_SIZE(__uvisor_config.bss_boxes_start, __uvisor_config.bss_boxes_end));
 
     /* Check heap start and end addresses */
     if (!__uvisor_config.heap_start || !vmpu_sram_addr((uint32_t) __uvisor_config.heap_start)) {
