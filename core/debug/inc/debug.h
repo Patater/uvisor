@@ -46,7 +46,7 @@ void debug_mpu_config(void);
 void debug_map_addr_to_periph(uint32_t address);
 void debug_register_driver(const TUvisorDebugDriver * const driver);
 uint32_t debug_get_version(void);
-void debug_halt_error(THaltError reason);
+void UVISOR_NORETURN debug_halt_error(THaltError reason);
 void debug_reboot(void);
 
 #define DEBUG_PRINT_HEAD(x) {\

@@ -33,13 +33,13 @@ static void halt_printf(const char *fmt, ...)
     va_end(va);
 }
 
-void halt(THaltError reason)
+void UVISOR_NORETURN halt(THaltError reason)
 {
     /* Die. */
     debug_halt_error(reason);
 }
 
-void halt_error(THaltError reason, const char *fmt, ...)
+void UVISOR_NORETURN halt_error(THaltError reason, const char *fmt, ...)
 {
     halt_printf("HALT_ERROR: ");
 
@@ -56,7 +56,7 @@ void halt_error(THaltError reason, const char *fmt, ...)
     debug_halt_error(reason);
 }
 
-void halt_line(const char *file, uint32_t line, THaltError reason,
+void UVISOR_NORETURN halt_line(const char *file, uint32_t line, THaltError reason,
                const char *fmt, ...)
 {
     halt_printf("HALT_ERROR(%s#%i): ", file, line);
@@ -74,7 +74,7 @@ void halt_line(const char *file, uint32_t line, THaltError reason,
     debug_halt_error(reason);
 }
 
-void halt_user_error(THaltUserError reason)
+void UVISOR_NORETURN halt_user_error(THaltUserError reason)
 {
     /* Die. */
     while(1);

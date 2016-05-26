@@ -316,7 +316,7 @@ uint32_t debug_get_version(void)
     return 0;
 }
 
-void debug_halt_error(THaltError reason)
+void UVISOR_NORETURN debug_halt_error(THaltError reason)
 {
     /* If the debug box does not exist (or it has not been initialized yet),
      * just halt. */
@@ -327,6 +327,7 @@ void debug_halt_error(THaltError reason)
          *   1. reason
          * Upon return from the debug handler, the system will reboot. */
         debug_deprivilege_and_return(g_debug_box.driver->halt_error, __debug_reboot, reason, 0, 0, 0);
+        __builtin_unreachable();
     }
 }
 

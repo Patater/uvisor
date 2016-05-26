@@ -39,10 +39,9 @@ typedef enum {
         halt_line(__FILE__, __LINE__, reason, ##__VA_ARGS__)
 #endif/*NDEBUG*/
 
-extern void halt_user_error(THaltUserError reason);
-extern void halt(THaltError reason);
-extern void halt_error(THaltError reason, const char *fmt, ...);
-extern void halt_line(const char *file, uint32_t line, THaltError reason,
-                      const char *fmt, ...);
+extern void UVISOR_NORETURN halt_user_error(THaltUserError reason);
+extern void UVISOR_NORETURN halt(THaltError reason);
+extern void UVISOR_NORETURN halt_error(THaltError reason, const char *fmt, ...);
+extern void UVISOR_NORETURN halt_line(const char *file, uint32_t line, THaltError reason, const char *fmt, ...);
 
 #endif/*__HALT_H__*/
