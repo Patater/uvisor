@@ -24,7 +24,7 @@
 extern const TIsrVector g_isr_vector[ISR_VECTORS];
 
 /* Default ISRs prototypes */
-void isr_default_sys_handler(void);
+void UVISOR_NORETURN isr_default_sys_handler(void);
 void isr_default_handler(void);
 
 /* System IRQs */
