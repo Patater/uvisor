@@ -170,13 +170,13 @@ static void vmpu_box_index_init(uint8_t box_id, uint32_t context_size, uint32_t 
     if (box_id == 0)
     {
         /* box 0 still uses the main heap to be backwards compatible */
-        g_svc_cx_context_ptr[0] = __uvisor_config.heap_start;
+        g_context_current_states[0].context = (uint32_t) __uvisor_config.heap_start;
         heap_size = ((void*)__uvisor_config.heap_end -
                      (void*)__uvisor_config.heap_start) -
                     sizeof(UvisorBoxIndex);
     }
 
-    void *box_bss = g_svc_cx_context_ptr[box_id];
+    void *box_bss = (void *) g_context_current_states[box_id].context;
 
     /* the box index is at the beginning of the bss section */
     UvisorBoxIndex *const index = box_bss;
