@@ -99,6 +99,6 @@ static inline void page_table_write(uint32_t addr, uint32_t data)
 }
 
 /* Include the original page allocator source directly. */
-#include "source/page_allocator.c_inc"
+#include "../page_allocator.c_inc"
 
 #endif
