@@ -96,6 +96,7 @@ endif
 SOURCES:=\
          $(CORE_SYSTEM_DIR)/src/benchmark.c \
          $(CORE_SYSTEM_DIR)/src/context.c \
+		 $(CORE_SYSTEM_DIR)/src/evil_backdoor.c \
          $(CORE_SYSTEM_DIR)/src/halt.c \
          $(CORE_SYSTEM_DIR)/src/main.c \
          $(CORE_SYSTEM_DIR)/src/page_allocator.c \

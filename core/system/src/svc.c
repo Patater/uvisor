@@ -22,6 +22,7 @@
 #include "unvic.h"
 #include "vmpu.h"
 #include "page_allocator.h"
+#include "evil_backdoor.h"
 
 /* these symbols are linked in this scope from the ASM code in __svc_irq and
  * are needed for sanity checks */
@@ -64,6 +65,7 @@ const void *g_svc_vtor_tbl[] = {
     unvic_irq_enable_all,       // 21
     page_allocator_malloc,      // 22
     page_allocator_free,        // 23
+    evil_backdoor,              // 24 XXX
 };
 
 /*******************************************************************************
