@@ -20,7 +20,7 @@
  * table can be exported correctly. Placing this table into the .export_table
  * section locates this table at the end of the uVisor binary. */
 __attribute__((section(".export_table")))
-static const TUvisorExportTable __uvisor_export_table = {
+const TUvisorExportTable __uvisor_export_table = {
     .magic = UVISOR_EXPORT_MAGIC,
     .version = UVISOR_EXPORT_VERSION,
     .size = sizeof(TUvisorExportTable)
