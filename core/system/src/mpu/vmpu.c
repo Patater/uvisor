@@ -81,19 +81,19 @@ static int vmpu_sanity_checks(void)
 
     /* verify SRAM relocation */
     DPRINTF("uvisor_ram : @0x%08X (%u bytes) [config]\n",
-        __uvisor_config.bss_main_start,
-        VMPU_REGION_SIZE(__uvisor_config.bss_main_start,
-                         __uvisor_config.bss_main_end));
+        __uvisor_config.sram_main_start,
+        VMPU_REGION_SIZE(__uvisor_config.sram_main_start,
+                         __uvisor_config.sram_main_end));
     DPRINTF("             (0x%08X (%u bytes) [linker]\n",
             SRAM_OFFSET_START, UVISOR_SRAM_LENGTH);
-    assert( __uvisor_config.bss_main_end > __uvisor_config.bss_main_start );
-    assert( VMPU_REGION_SIZE(__uvisor_config.bss_main_start,
-                             __uvisor_config.bss_main_end) == UVISOR_SRAM_LENGTH );
-    assert(&__stack_end__ <= __uvisor_config.bss_main_end);
+    assert( __uvisor_config.sram_main_end > __uvisor_config.sram_main_start );
+    assert( VMPU_REGION_SIZE(__uvisor_config.sram_main_start,
+                             __uvisor_config.sram_main_end) == UVISOR_SRAM_LENGTH );
+    assert(&__stack_end__ <= __uvisor_config.sram_main_end);
 
-    assert( (uint32_t) __uvisor_config.bss_main_start == SRAM_OFFSET_START);
-    assert( (uint32_t) __uvisor_config.bss_main_end == (SRAM_OFFSET_START +
-                                                        UVISOR_SRAM_LENGTH) );
+    assert( (uint32_t) __uvisor_config.sram_main_start == SRAM_OFFSET_START);
+    assert( (uint32_t) __uvisor_config.sram_main_end == (SRAM_OFFSET_START +
+                                                         UVISOR_SRAM_LENGTH) );
 
     /* verify that secure flash area is accessible and after public code */
     assert(!vmpu_public_flash_addr((uint32_t) __uvisor_config.secure_start));

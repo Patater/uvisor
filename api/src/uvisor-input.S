@@ -55,9 +55,9 @@ uvisor_config:
     .long __uvisor_bss_start
     .long __uvisor_bss_end
 
-    /* uVisor own BSS section */
-    .long __uvisor_bss_main_start
-    .long __uvisor_bss_main_end
+    /* uVisor's own SRAM */
+    .long __uvisor_sram_main_start
+    .long __uvisor_sram_main_end
 
     /* Seecure boxes BSS section */
     .long __uvisor_bss_boxes_start
@@ -128,7 +128,7 @@ __uvisor_box_context:
 __uvisor_ps:
     .long 0
 
-/* Reserve space for the uVisor BSS section. This section is zeroed by uVisor at
- * boot time. */
-.section .keep.uvisor.bss.main, "awM", @nobits
+/* Reserve space for the uVisor's own SRAM sections, data and BSS. The BSS
+ * portion of this section is zeroed by uVisor at boot time. */
+.section .keep.uvisor.sram.main, "awM", @nobits
     .space UVISOR_SRAM_LENGTH

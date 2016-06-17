@@ -254,7 +254,7 @@ void vmpu_mem_init(void)
     int res;
 
     /* uvisor SRAM only accessible to uvisor */
-    res = vmpu_mem_add_int(0, (void*)SRAM_ORIGIN, ((uint32_t)__uvisor_config.bss_main_end)-SRAM_ORIGIN,
+    res = vmpu_mem_add_int(0, (void*)SRAM_ORIGIN, ((uint32_t)__uvisor_config.sram_main_end)-SRAM_ORIGIN,
         UVISOR_TACL_SREAD|
         UVISOR_TACL_SWRITE);
     if( res<0 )

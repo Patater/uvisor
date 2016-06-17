@@ -365,12 +365,12 @@ SECTIONS
         . = ALIGN(32);
         __uvisor_bss_start = .;
 
-        /* uVisor main BSS section */
+        /* uVisor's own SRAM */
         . = ALIGN(32);
-        __uvisor_bss_main_start = .;
-        KEEP(*(.keep.uvisor.bss.main))
+        __uvisor_sram_main_start = .;
+        KEEP(*(.keep.uvisor.sram.main))
         . = ALIGN(32);
-        __uvisor_bss_main_end = .;
+        __uvisor_sram_main_end = .;
 
         /* Secure boxes BSS section */
         . = ALIGN(32);
@@ -497,7 +497,7 @@ As shown in the snippet above, the uVisor needs the following regions:
         <code>.uvisor.bss</code>
       </td>
       <td>
-        It contains both uVisor's own memories (coming from the uVisor library, in <code>.keep.uvisor.bss.main</code>) and the secure boxes' protected memories (in <code>.keep.uvisor.bss.boxes</code>). You must make sure that this region (and hence its first sub-region, <code>.keep.uvisor.bss.boxes</code>) is positioned in SRAM at the same offset that you specified in <code>SRAM_OFFSET</code>. To avoid having data loaded from flash ending up before uVisor, we strongly suggest to put this section as soon as possible in the linker script, before any loaded section.
+        It contains both uVisor's own memories (coming from the uVisor library, in <code>.keep.uvisor.sram.main</code>) and the secure boxes' protected memories (in <code>.keep.uvisor.bss.boxes</code>). You must make sure that this region (and hence its first sub-region, <code>.keep.uvisor.sram.boxes</code>) is positioned in SRAM at the same offset that you specified in <code>SRAM_OFFSET</code>. To avoid having data loaded from flash ending up before uVisor, we strongly suggest to put this section as soon as possible in the linker script, before any loaded section.
       </td>
     </tr>
     <tr>

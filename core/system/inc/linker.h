@@ -45,9 +45,9 @@ typedef struct {
     uint32_t * bss_start;
     uint32_t * bss_end;
 
-    /* uVisor own BSS section */
-    uint32_t * bss_main_start;
-    uint32_t * bss_main_end;
+    /* uVisor's own SRAM */
+    uint32_t * sram_main_start;
+    uint32_t * sram_main_end;
 
     /* Seecure boxes BSS section */
     uint32_t * bss_boxes_start;
