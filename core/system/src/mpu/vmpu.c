@@ -94,6 +94,11 @@ static int vmpu_sanity_checks(void)
     assert( (uint32_t) __uvisor_config.sram_main_start == SRAM_OFFSET_START);
     assert( (uint32_t) __uvisor_config.sram_main_end == (SRAM_OFFSET_START +
                                                          UVISOR_SRAM_LENGTH) );
+    /* Verify SRAM sections are within uVisor's own SRAM. */
+    assert(&__bss_start__ >= __uvisor_config.sram_main_start);
+    assert(&__bss_end__ < __uvisor_config.sram_main_end);
+    assert(&__data_start__ >= __uvisor_config.sram_main_start);
+    assert(&__data_end__ < __uvisor_config.sram_main_end);
 
     /* verify that secure flash area is accessible and after public code */
     assert(!vmpu_public_flash_addr((uint32_t) __uvisor_config.secure_start));
