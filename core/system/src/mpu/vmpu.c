@@ -82,6 +82,13 @@ static int vmpu_sanity_checks(void)
         SRAM_ORIGIN + SRAM_OFFSET,
         UVISOR_SRAM_LENGTH);
 
+    /* Verify that the sections inside the BSS region are disjoint. */
+    assert(__uvisor_config.bss_end > __uvisor_config.bss_start);
+    assert(__uvisor_config.bss_main_end > __uvisor_config.bss_main_start);
+    assert(__uvisor_config.bss_boxes_end > __uvisor_config.bss_boxes_start);
+    assert((__uvisor_config.bss_main_start >= __uvisor_config.bss_boxes_end) ||
+           (__uvisor_config.bss_main_end <= __uvisor_config.bss_boxes_start));
+
     /* Verify the uVisor expectations regarding its own memories. */
     /* Note: Due to alignment, the size available to uVisor could be larger than
      * UVISOR_SRAM_LENGTH. */
