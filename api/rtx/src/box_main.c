@@ -22,31 +22,26 @@
 
 /* This function is called by uVisor in unprivileged mode to create box main
  * threads. */
-void __uvisor_lib_box_main_handler(
-    void (*function)(void const *),
-    int32_t priority,
-    uint32_t stack_size)
+void __uvisor_lib_config_handler(uint32_t lib_config)
 {
     osThreadId thread_id;
-    osThreadDef_t thread_def;
-    thread_def.pthread = function;
-    thread_def.tpriority = priority;
-    thread_def.stacksize = stack_size;
+    osThreadDef_t * thread_def = (osThreadDef_t *)lib_config;
 
     /* Note that the box main thread stack is separate from the box stack. This
      * is because the thread must be created to use a different stack than the
      * stack osCreateThread() is called from, as context information is saved
      * to the thread stack by the call to osCreateThread(). */
     /* Allocate memory for the main thread from the process heap (which is
-     * private to the process). This memory is never freed. */
-    thread_def.stack_pointer = malloc_p(stack_size);
+     * private to the process). This memory is never freed, even if the box's
+     * main thread exits. */
+    thread_def->stack_pointer = malloc_p(thread_def->stacksize);
 
-    if (thread_def.stack_pointer == NULL) {
+    if (thread_def->stack_pointer == NULL) {
         /* No process heap memory available */
         mbed_die();
     }
 
-    thread_id = osThreadCreate(&thread_def, NULL);
+    thread_id = osThreadCreate(thread_def, NULL);
 
     if (thread_id == NULL) {
         /* Failed to create thread */
