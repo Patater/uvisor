@@ -46,8 +46,6 @@ UVISOR_EXTERN const uint32_t __uvisor_mode;
         0, \
         0, \
         0, \
-        0, \
-        0, \
         NULL, \
         acl_list, \
         acl_list_count \
@@ -79,9 +77,7 @@ UVISOR_EXTERN const uint32_t __uvisor_mode;
         sizeof(RtxBoxIndex), \
         context_size, \
         __uvisor_box_heapsize, \
-        __uvisor_box_main_function, \
-        __uvisor_box_main_priority, \
-        __uvisor_box_main_stack_size, \
+        __uvisor_box_lib_config, \
         __uvisor_box_namespace, \
         acl_list, \
         acl_list_count \
@@ -125,10 +121,8 @@ UVISOR_EXTERN const uint32_t __uvisor_mode;
 /* Use this macro before UVISOR_BOX_CONFIG to define the function the main
  * thread of your box will use for its body. If you don't want a main thread,
  * too bad: you have to have one. */
-#define UVISOR_BOX_MAIN(function, priority, size) \
-    static void (*const __uvisor_box_main_function)(void const *) = (function); \
-    static const int32_t __uvisor_box_main_priority = (priority); \
-    static const uint32_t __uvisor_box_main_stack_size = (size);
+#define UVISOR_BOX_LIB_CONFIG(lib_config) \
+    static const uint32_t __uvisor_box_lib_config = lib_config;
 
 #define UVISOR_BOX_HEAPSIZE(heap_size) \
     static const uint32_t __uvisor_box_heapsize = heap_size;
