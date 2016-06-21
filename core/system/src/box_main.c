@@ -108,16 +108,12 @@ void box_main_context_switch_next(uint32_t src_svc_sp)
     }
 
     /* Find the next box to switch to, if any.
-     * The box needs to have an initialization function defined, otherwise we
-     * skip it. */
+     * Box 0 is skipped, as we don't call the generic, per-box "box_main"
+     * handler that box. */
     uint8_t dst_id = g_box_main_counter + 1;
     UvisorBoxConfig const * * box_cfg = (UvisorBoxConfig const * *) __uvisor_config.cfgtbl_ptr_start;
     while (dst_id < g_vmpu_box_count) {
-        if (box_cfg[dst_id]->main_function != NULL) {
-            break;
-        } else {
-            dst_id++;
-        }
+        dst_id++;
     }
 
     /* The stack pointer provided to us as an input comes from an SVC
@@ -153,10 +149,8 @@ void box_main_context_switch_next(uint32_t src_svc_sp)
     uint32_t xpsr = ((uint32_t *) g_box_main_box0_sp)[7];
     uint32_t dst_sp = context_forge_exc_sf(g_box_main_box0_sp, dst_id, dst_fn, (uint32_t) box_main_thunk, xpsr, 0);
 
-    /* Populate the 4 arguments passed down to the destination box.*/
-    ((uint32_t *) dst_sp)[0] = (uint32_t) box_cfg[dst_id]->main_function; /* Box-specific initialization handler */
-    ((uint32_t *) dst_sp)[1] = (uint32_t) box_cfg[dst_id]->main_priority; /* Box-specific initialization handler priority */
-    ((uint32_t *) dst_sp)[2] = box_cfg[dst_id]->main_stack_size;          /* Box private stack size */
+    /* Populate the argument passed down to the destination box. */
+    ((uint32_t *) dst_sp)[0] = (uint32_t) box_cfg[dst_id]->lib_config;
 
     /* Perform the context switch to the destination box.
      * This context switch will update the internal context state, so that the
