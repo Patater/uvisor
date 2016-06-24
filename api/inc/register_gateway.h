@@ -92,7 +92,7 @@
         (void) register_gateway_ptr; \
         \
         /* Call the actual gateway. */ \
-        uint32_t result = ((uint32_t (*)(void)) ((uint32_t) &register_gateway | 1))(); \
+        uint32_t result = ((uint32_t (*)(void)) ((uint32_t) &register_gateway + 1U)(); \
         (typeof(*addr)) result; \
     })
 
@@ -139,7 +139,7 @@
         \
         /* Call the actual gateway.
          * The value is passed as the first argument. */ \
-        ((void (*)(uint32_t)) ((uint32_t) ((uint32_t) &register_gateway | 1)))((uint32_t) (val)); \
+        ((void (*)(uint32_t)) ((uint32_t) &register_gateway + 1U))((uint32_t) (val)); \
     }
 
 /** Get the selected bits at the target address.
