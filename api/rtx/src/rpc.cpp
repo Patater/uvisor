@@ -157,7 +157,7 @@ UVISOR_EXTERN int rpc_fncall(
     msg->p1 = p1;
     msg->p2 = p2;
     msg->p3 = p3;
-    msg->result_q_id = result_q_id;
+    msg->result_q_id = result_q_id; /* XXX TODO make uVisor populate this, so it can be trusted. */
 
     /* XXX Why did we want to have send queues within the caller process for
      * RPC? Maybe because this function wouldn't be able to use the receive
