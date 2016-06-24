@@ -17,6 +17,7 @@
 
 #include "uvisor-lib/uvisor-lib.h"
 
+#if 0
 static void rpc_fncall_callback(const void * context)
 {
     /* Note: This runs in caller context? */
@@ -35,6 +36,9 @@ static void rpc_fncall_callback(const void * context)
 }
 
 UVISOR_EXTERN void rpc_fncall_async(box_name##_rpc_receive_q_id, callback, timeout, fn_name, p0, p1, p2, p3)
+{
+}
+
 UVISOR_EXTERN int rpc_fncall_async(
     osMailQId dest_mail_q_id, TFN_RPC_Callback callback, uint32_t timeout_ms,
     const TFN_Ptr fn, uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3)
@@ -103,6 +107,7 @@ UVISOR_EXTERN int rpc_fncall_async(
     /* No message was available. Probably timed out. */
     return -1;
 }
+#endif
 
 UVISOR_EXTERN int rpc_fncall(
     osMailQId dest_mail_q_id, uint32_t timeout_ms,
