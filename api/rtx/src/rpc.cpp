@@ -17,99 +17,7 @@
 
 #include "uvisor-lib/uvisor-lib.h"
 
-#if 0
-static void rpc_fncall_callback(const void * context)
-{
-    /* Note: This runs in caller context? */
-    event = osMessageGet(result_q_id, timeout_ms);
-    if (event.status == osEventMessage)
-    {
-        /* Call the callback */
-        callback
-        *result = (int) event.value.p;
-        osMessageCreate(osMessageQ(result_q), NULL);
-        return 0;
-    }
-
-    /* No message was available. Probably timed out. */
-    return -1;
-}
-
-UVISOR_EXTERN void rpc_fncall_async(box_name##_rpc_receive_q_id, callback, timeout, fn_name, p0, p1, p2, p3)
-{
-}
-
-UVISOR_EXTERN int rpc_fncall_async(
-    osMailQId dest_mail_q_id, TFN_RPC_Callback callback, uint32_t timeout_ms,
-    const TFN_Ptr fn, uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3)
-{
-    /* TODO - check the type of the call target.
-            - move this function to uvisor lib.
-            - if call target is not a known RPC target, do a normal local
-              function call. (async will have to use the queue still, perhaps)
-            - variadic function
-            - uVisor firewall
-            - target queue from lib config
-    */
-
-    uvisor_rpc_message_t * msg;
-    osEvent event;
-
-    /* Make a queue of size 1 to receive the result into. XXX Only the target
-     * function's box context should be allowed to post to this. But, that's
-     * not good enough. That target box is not really trusted, yet we need to
-     * trust that it will eventually set a return code, not give us back too
-     * many return codes, and the wrong not set nonsense return codes; some
-     * other task in the target box could be writing to all queue ids (32-bit
-     * easy to brute force) in a loop nonsense return codes: if one doesn't
-     * call into that box, they don't have a problem. But, when they do, they
-     * have to have some sort of trust in how the return codes get posted back.
-     * */
-    osMessageQDef(result_q, 1, int);
-    osMessageQId(result_q_id);
-    result_q_id = osMessageCreate(osMessageQ(result_q), NULL);
-
-    /* XXX The pool for the should be in box private memory, so this needs
-     * some rework. uVisor needs to do the data copy on behalf of the sender if
-     * the firewall rules pass for this caller. */
-    /* TODO obtain the queue to use from the libconfig, after having looked up
-     * the target and found it to be a valid RPC target. */
-    /* XXX Not sure if we want to wait forever on the destination queue to have
-     * room. I think we do, as it's the waiting for the result return value
-     * that the user specified a timeout for. However, we might not want to
-     * wait forever in all cases. Maybe this should be 0 timeout instead. */
-    msg = (uvisor_rpc_message_t *) osMailAlloc(dest_mail_q_id, osWaitForever);
-    msg->fn = fn;
-    msg->p0 = p0;
-    msg->p1 = p1;
-    msg->p2 = p2;
-    msg->p3 = p3;
-    msg->result_q_id = result_q_id;
-
-    /* XXX Why did we want to have send queues within the caller process for
-     * RPC? Maybe because this function wouldn't be able to use the receive
-     * queue in the callee process directly. For now, this is ok because
-     * prototyping. After we add uVisor firewall, of course we can't use the
-     * queue directly. */
-    osMailPut(dest_mail_q_id, msg);
-
-    /* Wait for the function to return. In the asynchronous case, we'd not wait
-     * like this, but instead perhaps have a thread (for callback context) wait
-     * and then call the callback when semaphore is ready. */
-    event = osMessageGet(result_q_id, timeout_ms);
-    if (event.status == osEventMessage)
-    {
-        *result = (int) event.value.p;
-        osMessageCreate(osMessageQ(result_q), NULL);
-        return 0;
-    }
-
-    /* No message was available. Probably timed out. */
-    return -1;
-}
-#endif
-
-UVISOR_EXTERN int rpc_fncall(
+UVISOR_EXTERN osMessageQId rpc_fncall_async(
     osMailQId dest_mail_q_id,
     const TFN_Ptr fn, uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3)
 {
@@ -124,7 +32,6 @@ UVISOR_EXTERN int rpc_fncall(
     */
 
     uvisor_rpc_message_t * msg;
-    osEvent event;
 
     /* Make a queue of size 1 to receive the result into. XXX Only the target
      * function's box context should be allowed to post to this. But, that's
@@ -167,19 +74,24 @@ UVISOR_EXTERN int rpc_fncall(
      * queue directly. */
     osMailPut(dest_mail_q_id, msg);
 
-    /* Wait for the function to return. In the asynchronous case, we'd not wait
-     * like this, but instead perhaps have a thread (for callback context) wait
-     * and then call the callback when semaphore is ready. */
-    event = osMessageGet(result_q_id, timeout_ms);
-    if (event.status == osEventMessage)
-    {
-        *result = (int) event.value.p;
-        osMessageCreate(osMessageQ(result_q), NULL);
-        return 0;
-    }
+    return result_q_id;
+}
 
-    /* No message was available. Probably timed out. */
-    return -1;
+UVISOR_EXTERN int rpc_fncall(osMailQId dest_mail_q_id,
+                             const TFN_Ptr fn, uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3)
+{
+    /* Note: This runs in caller context. */
+    osMessageQId result_q_id;
+    osEvent event;
+
+    result_q_id = rpc_fncall_async(dest_mail_q_id, fn, p0, p1, p2, p3);
+
+    for (;;) {
+        event = osMessageGet(result_q_id, osWaitForever);
+        if (event.status == osEventMessage) {
+            return (int) event.value.p;
+        }
+    }
 }
 
 UVISOR_EXTERN int rpc_fncall_waitfor(osMailQId mail_q_id, uint32_t timeout_ms)

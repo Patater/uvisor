@@ -67,10 +67,22 @@ struct uvisor_rpc_message_t {
     osMessageQId result_q_id;
 };
 
-UVISOR_EXTERN int rpc_fncall(
-    osMailQId dest_mail_q_id, uint32_t timeout_ms,
-    const TFN_Ptr fn, uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3,
-    int *result);
+UVISOR_EXTERN int rpc_fncall(osMailQId dest_mail_q_id,
+                             const TFN_Ptr fn, uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3);
+
+/* Return a message queue id that the caller can wait on to get a result.
+ * XXX This is pure mechanism: the caller can choose to make a thread to wait
+ * on result or use any thread they want whenever they feel like. We, as
+ * implementers of RPC, don't make the decision for the caller. The decision is
+ * best made where all the information is available to make the decision. If we
+ * need to wrap that with an abstraction to make the user not have to think,
+ * then we'll provide a separate wrapper to do so, but goal #1 is a stable and
+ * functional API. (An API with too much policy in it is bound to be unstable,
+ * as users request different policies.) */
+/* Notice that we don't even need to specify any sort of timeout stuff here.
+ * All that policy is decided by the user. */
+UVISOR_EXTERN osMessageQId rpc_fncall_async(osMailQId dest_mail_q_id,
+                                            const TFN_Ptr fn, uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3);
 
 UVISOR_EXTERN int rpc_fncall_waitfor(osMailQId mail_q_id, uint32_t timeout_ms);
 
