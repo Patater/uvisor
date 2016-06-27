@@ -34,10 +34,8 @@
 #define UVISOR_BOX_RPC_HANDLE(box_name, timeout) \
     rpc_fncall_waitfor(box_name##_rpc_receive_q_id, timeout);
 
-#define UVISOR_BOX_RPC_CALL(box_name, timeout, fn_name, p0, p1, p2, p3) \
-    int result; \
-    rpc_fncall(box_name##_rpc_receive_q_id, timeout, fn_name, p0, p1, p2, p3, &result); \
-    return result;
+#define UVISOR_BOX_RPC_CALL(box_name, fn_name, p0, p1, p2, p3) \
+    return rpc_fncall(box_name##_rpc_receive_q_id, fn_name, p0, p1, p2, p3);
 
 #define UVISOR_BOX_RPC_CALL_ASYNC(box_name, callback, timeout, fn_name, p0, p1, p2, p3) \
     return rpc_fncall_async(box_name##_rpc_receive_q_id, callback, timeout, fn_name, p0, p1, p2, p3);

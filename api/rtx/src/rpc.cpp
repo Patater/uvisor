@@ -110,14 +110,12 @@ UVISOR_EXTERN int rpc_fncall_async(
 #endif
 
 UVISOR_EXTERN int rpc_fncall(
-    osMailQId dest_mail_q_id, uint32_t timeout_ms,
-    const TFN_Ptr fn, uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3,
-    int *result)
+    osMailQId dest_mail_q_id,
+    const TFN_Ptr fn, uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3)
 {
     /* Note: This runs in caller context. */
 
     /* TODO - check the type of the call target.
-            - move this function to uvisor lib.
             - if call target is not a known RPC target, do a normal local
               function call. (async will have to use the queue still, perhaps)
             - variadic function
@@ -138,11 +136,14 @@ UVISOR_EXTERN int rpc_fncall(
      * call into that box, they don't have a problem. But, when they do, they
      * have to have some sort of trust in how the return codes get posted back.
      * */
+    /* The synchronous function is easy-mode. It gets you talkin' with the
+     * other box, but not in a mutally distrustful fashion: you have to trust
+     * that the target box will eventually return. */
     osMessageQDef(result_q, 1, int);
     osMessageQId(result_q_id);
     result_q_id = osMessageCreate(osMessageQ(result_q), NULL);
 
-    /* XXX The pool for the should be in box private memory, so this needs
+    /* XXX The pool for the mail should be in box private memory, so this needs
      * some rework. uVisor needs to do the data copy on behalf of the sender if
      * the firewall rules pass for this caller. */
     /* TODO obtain the queue to use from the libconfig, after having looked up
@@ -238,8 +239,8 @@ UVISOR_EXTERN int rpc_fncall_waitfor(osMailQId mail_q_id, uint32_t timeout_ms)
          * fail to post the return value if the caller's queue has trouble. */
         static const uint32_t result_timeout_ms = 0;
         status = osMessagePut(msg->result_q_id, result, result_timeout_ms);
-        (void)status; /* Ignore result, since we don't care about the caller's
-                         result queue being broken. */
+        (void) status; /* Ignore result, since we don't care about the caller's
+                          result queue being broken. */
 
         /* Now that the function has returned, free the item. It is good that
          * the caller doesn't have to trust that the callee will do this.
