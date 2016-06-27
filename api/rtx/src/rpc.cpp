@@ -16,10 +16,55 @@
  */
 
 #include "uvisor-lib/uvisor-lib.h"
+#include <stdlib.h>
+#include <string.h>
 
-UVISOR_EXTERN osMessageQId rpc_fncall_async(
-    osMailQId dest_mail_q_id,
-    const TFN_Ptr fn, uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3)
+/* XXX There is no cross-OS way to allocate a message queue with malloc... We
+ * have to provide our own factory method. There is not even an mbed wrapper
+ * for message queues like there is for mail queues. */
+#ifdef CMSIS_OS_RTX
+static osMessageQDef_t * create_message_queue(uint32_t queue_size_words)
+{
+    osMessageQDef_t * q;
+    uint32_t * pool;
+
+    /* RTX expects pool has room for 4 words of metadata. */
+    static const size_t pool_size_bytes = (queue_size_words + 4) * 4;
+
+    q = (osMessageQDef_t *) malloc(sizeof(*q));
+
+    /* RTX expects a pre-allocated pool. (It doesn't allocate one in
+     * osMessageCreate.) */
+    pool = (uint32_t *) malloc(pool_size_bytes);
+
+    /* RTX expects pool is zero-initialized. */
+    memset(pool, 0, pool_size_bytes);
+
+    q->queue_sz = queue_size_words;
+    q->pool = pool;
+
+    return q;
+}
+#else
+#error "Unknown how to create a osMessageQDef_t with malloc for this OS"
+#endif
+
+#ifdef CMSIS_OS_RTX
+static void destroy_message_queue(osMessageQDef_t *q)
+{
+    /* RTX required a pre-allocated pool, so we need to dispose of the pool
+     * ourselves here. */
+    if (q) {
+        free(q->pool);
+    }
+    free(q);
+}
+#else
+#error "Unknown how to destroy a osMessageQDef_t with free for this OS"
+#endif
+
+UVISOR_EXTERN uvisor_rpc_result_t rpc_fncall_async(osMailQId dest_mail_q_id,
+                                                   const TFN_Ptr fn, uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3)
 {
     /* Note: This runs in caller context. */
 
@@ -46,9 +91,18 @@ UVISOR_EXTERN osMessageQId rpc_fncall_async(
     /* The synchronous function is easy-mode. It gets you talkin' with the
      * other box, but not in a mutally distrustful fashion: you have to trust
      * that the target box will eventually return. */
-    osMessageQDef(result_q, 1, int);
+#if 0
+    osMessageQDef(result_q, 1, int); /* XXX This is stack allocated. We can't
+     * wait do anything with it in the async case, as this function will have
+     * returned. We need to malloc this (in box 0 for now) ...
+     * We could also statically allocate these, based on the maximum number of
+     * outstanding outgoing RPC requests for a box.
+     * Either way, we need to limit the maximum number of outstanding outgoing
+     * RPC requests, so malloc should be fine here. */
+#endif
+    osMessageQDef_t * result_q = create_message_queue(1);
     osMessageQId(result_q_id);
-    result_q_id = osMessageCreate(osMessageQ(result_q), NULL);
+    result_q_id = osMessageCreate(result_q, NULL);
 
     /* XXX The pool for the mail should be in box private memory, so this needs
      * some rework. uVisor needs to do the data copy on behalf of the sender if
@@ -74,23 +128,38 @@ UVISOR_EXTERN osMessageQId rpc_fncall_async(
      * queue directly. */
     osMailPut(dest_mail_q_id, msg);
 
-    return result_q_id;
+    uvisor_rpc_result_t result = {result_q, result_q_id};
+    return result;
 }
 
 UVISOR_EXTERN int rpc_fncall(osMailQId dest_mail_q_id,
                              const TFN_Ptr fn, uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3)
 {
     /* Note: This runs in caller context. */
-    osMessageQId result_q_id;
-    osEvent event;
+    uvisor_rpc_result_t result;
 
-    result_q_id = rpc_fncall_async(dest_mail_q_id, fn, p0, p1, p2, p3);
+    result = rpc_fncall_async(dest_mail_q_id, fn, p0, p1, p2, p3);
 
     for (;;) {
-        event = osMessageGet(result_q_id, osWaitForever);
+        /* XXX Decide which thing to do here. */
+#if 0
+        /* XXX We may want to use rpc_fncall_wait here, but it's slightly
+         * different semantics so far as how errors are handled and tried again
+         * (or not) */
+        int status = rpc_fncall_wait(&result, osWaitForever, &ret);
+        if (!status)
+        {
+            return ret;
+        }
+#else
+        osEvent event;
+
+        event = osMessageGet(result.q_id, osWaitForever);
         if (event.status == osEventMessage) {
+            destroy_message_queue(result.q);
             return (int) event.value.p;
         }
+#endif
     }
 }
 
@@ -150,6 +219,10 @@ UVISOR_EXTERN int rpc_fncall_waitfor(osMailQId mail_q_id, uint32_t timeout_ms)
         /* Notify the caller. Don't wait for any room in the caller's queue;
          * fail to post the return value if the caller's queue has trouble. */
         static const uint32_t result_timeout_ms = 0;
+        /* XXX The result q may be disappeared now. We don't really have a way
+         * to tell if it safe to call this function or not yet. Without
+         * checking before calling this, we could inadvertently use-after-free.
+         * */
         status = osMessagePut(msg->result_q_id, result, result_timeout_ms);
         (void) status; /* Ignore result, since we don't care about the caller's
                           result queue being broken. */
@@ -163,4 +236,35 @@ UVISOR_EXTERN int rpc_fncall_waitfor(osMailQId mail_q_id, uint32_t timeout_ms)
     }
 
     return event.status;
+}
+
+UVISOR_EXTERN int rpc_fncall_wait(uvisor_rpc_result_t *result, uint32_t timeout_ms, int *ret)
+{
+    osEvent event;
+    int status = -1;
+
+    event = osMessageGet(result->q_id, timeout_ms);
+    if (event.status == osEventMessage) {
+        *ret = (int) event.value.p;
+        status = 0;
+    }
+
+    /* XXX In case of a timeout, one might not really want to destroy the message
+     * queue. The target box might still try to put something onto the queue
+     * which may no longer exist. This is probably okay, because checks are
+     * done in the target box to see if the queue is good (by RTX) before
+     * putting stuff there (we get osErrorParameter if the queue got deleted).
+     * Do we need another function to clean up the result queue instead,
+     * though? That'd just make it up to the user to decide when it'd be safe
+     * to say "I'm not interested in results from this RPC call anymore." I'm
+     * inclined to delete the queue always here, as waiting for the call is a
+     * signal from the user that they are not interested in results anymore
+     * after this call. */
+    /* This interested probably has to be reference counted between the guy
+     * filling the queue in target box and the caller box... We actually get
+     * bus fault (access to unauthorized memory) due to use of the queue after
+     * it has been freed. */
+    destroy_message_queue(result->q);
+
+    return status;
 }

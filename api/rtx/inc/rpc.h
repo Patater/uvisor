@@ -48,7 +48,7 @@ typedef int (*TFN_RPC_Callback)(int);
 
 /* Private for use only by uVisor lib, but the size of this type must be known
  * publicly for the UVISOR_BOX_RPC_DECL macro to work. */
-struct uvisor_rpc_message_t {
+typedef struct {
     /* XXX TODO Think about what memory is accessible when and by whom. uVisor
      * has to manage moving memory around between contexts. We want to minimize
      * SVCs to uVisor, but we probably need one SVC to initiate the call (send
@@ -65,7 +65,15 @@ struct uvisor_rpc_message_t {
     /* The caller reads from this this queue. The callee writes to this queue.
      * */
     osMessageQId result_q_id;
-};
+} uvisor_rpc_message_t;
+
+typedef struct {
+    /* This is the queue to wait on for a result. */
+    osMessageQDef_t *q; /* We have to include the queue def so that we
+                           can delete it when the result queue is no longer
+                           needed. */
+    osMessageQId q_id;
+} uvisor_rpc_result_t;
 
 UVISOR_EXTERN int rpc_fncall(osMailQId dest_mail_q_id,
                              const TFN_Ptr fn, uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3);
@@ -81,9 +89,15 @@ UVISOR_EXTERN int rpc_fncall(osMailQId dest_mail_q_id,
  * as users request different policies.) */
 /* Notice that we don't even need to specify any sort of timeout stuff here.
  * All that policy is decided by the user. */
-UVISOR_EXTERN osMessageQId rpc_fncall_async(osMailQId dest_mail_q_id,
-                                            const TFN_Ptr fn, uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3);
+UVISOR_EXTERN uvisor_rpc_result_t rpc_fncall_async(osMailQId dest_mail_q_id,
+                                                   const TFN_Ptr fn, uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3);
 
 UVISOR_EXTERN int rpc_fncall_waitfor(osMailQId mail_q_id, uint32_t timeout_ms);
+
+/* XXX TODO Re-word this.
+ * Wait for the result of a previously started asynchronous rpc. After this
+ * call, ret will contain the return value of the rpc. The return value of this
+ * function may indicate that there was a timeout with non-zero. */
+UVISOR_EXTERN int rpc_fncall_wait(uvisor_rpc_result_t *result, uint32_t timeout_ms, int *ret);
 
 #endif
