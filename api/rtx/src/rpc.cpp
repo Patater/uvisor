@@ -63,8 +63,8 @@ static void destroy_message_queue(osMessageQDef_t *q)
 #error "Unknown how to destroy a osMessageQDef_t with free for this OS"
 #endif
 
-UVISOR_EXTERN uvisor_rpc_result_t rpc_fncall_async(osMailQId dest_mail_q_id,
-                                                   const TFN_Ptr fn, uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3)
+UVISOR_EXTERN uvisor_rpc_result_t rpc_fncall_async(uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3,
+                                                   const TFN_Ptr fn, osMailQId dest_mail_q_id)
 {
     /* Note: This runs in caller context. */
 
@@ -132,13 +132,13 @@ UVISOR_EXTERN uvisor_rpc_result_t rpc_fncall_async(osMailQId dest_mail_q_id,
     return result;
 }
 
-UVISOR_EXTERN int rpc_fncall(osMailQId dest_mail_q_id,
-                             const TFN_Ptr fn, uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3)
+UVISOR_EXTERN uint32_t rpc_fncall(uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3,
+                                  const TFN_Ptr fn, osMailQId dest_mail_q_id)
 {
     /* Note: This runs in caller context. */
     uvisor_rpc_result_t result;
 
-    result = rpc_fncall_async(dest_mail_q_id, fn, p0, p1, p2, p3);
+    result = rpc_fncall_async(p0, p1, p2, p3, fn, dest_mail_q_id);
 
     for (;;) {
         /* XXX Decide which thing to do here. */
@@ -249,10 +249,10 @@ UVISOR_EXTERN int rpc_fncall_wait(uvisor_rpc_result_t *result, uint32_t timeout_
         status = 0;
     }
 
-    /* XXX In case of a timeout, one might not really want to destroy the message
-     * queue. The target box might still try to put something onto the queue
-     * which may no longer exist. This is probably okay, because checks are
-     * done in the target box to see if the queue is good (by RTX) before
+    /* XXX In case of a timeout, one might not really want to destroy the
+     * message queue. The target box might still try to put something onto the
+     * queue which may no longer exist. This is probably okay, because checks
+     * are done in the target box to see if the queue is good (by RTX) before
      * putting stuff there (we get osErrorParameter if the queue got deleted).
      * Do we need another function to clean up the result queue instead,
      * though? That'd just make it up to the user to decide when it'd be safe

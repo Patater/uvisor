@@ -19,15 +19,11 @@
 
 #include "cmsis_os.h"
 
+/* XXX When should this be rpc_exports.h and when should it be just rpc.h? */
+
 #define ARRAY_COUNT(x) (sizeof(x) / sizeof(*x))
 
-/* XXX TODO Add magic cookie to make this some verifiable list of function
- * targets in flash. All functions in this list must belong to the box that
- * lists them. */
-#define UVISOR_BOX_RPC_DECL(box_name, max_num_outstanding_inbound_rpc, ...) \
-    const TFN_Ptr box_name##_fn_array[] = { \
-        __VA_ARGS__, \
-    }; \
+#define UVISOR_BOX_RPC_INCOMING_QUEUE(box_name, max_num_outstanding_inbound_rpc) \
     osMailQDef(box_name##_rpc_receive_q, max_num_outstanding_inbound_rpc, uvisor_rpc_message_t); \
     osMailQId(box_name##_rpc_receive_q_id);
 
@@ -35,13 +31,83 @@
     rpc_fncall_waitfor(box_name##_rpc_receive_q_id, timeout);
 
 #define UVISOR_BOX_RPC_CALL(box_name, fn_name, p0, p1, p2, p3) \
-    return rpc_fncall(box_name##_rpc_receive_q_id, fn_name, p0, p1, p2, p3);
+    return rpc_fncall(p0, p1, p2, p3, fn_name, box_name##_rpc_receive_q_id);
 
 #define UVISOR_BOX_RPC_CALL_ASYNC(box_name, callback, timeout, fn_name, p0, p1, p2, p3) \
     return rpc_fncall_async(box_name##_rpc_receive_q_id, callback, timeout, fn_name, p0, p1, p2, p3);
 
 #define UVISOR_BOX_RPC_INIT(box_name) \
     box_name##_rpc_receive_q_id = osMailCreate(osMailQ(box_name##_rpc_receive_q), NULL);
+
+#if defined(__thumb__) && defined(__thumb2__)
+/* This is chosen to be one of the explicitly undefined instructions. */
+#define UVISOR_RPC_GATEWAY_MAGIC 0xA7C2F7F0
+#else
+#error "Unsupported instruction set. The ARM Thumb-2 instruction set must be supported."
+#endif /* __thumb__ && __thumb2__ */
+
+/* ldr r12, [pc, #<label - instr + 4>] */
+#define LOAD_R12_PC_OPCODE(instr, label) \
+    (uint32_t) (0xC000F8DF | ((((uint32_t) (label) - ((uint32_t) (instr) + 4)) & 0xFFF) << 16))
+
+/* XXX TODO load directly to PC (no r12) */
+
+/** RPC Gateway
+ *
+ * This macro declares an `sgw_*` function to perform a remote procedure call (RPC)
+ * to the designated function. RPCs are assembled into a read-only flash
+ * structure that is read and validated by uVisor before performing the
+ * operation.
+ *
+ * @param box_name[in] The name of the source box as decalred in
+ *                     `UVISOR_BOX_CONFIG`
+ * @param fn_name[in]  The function being designated as an RPC target
+ * @param fn_type[in]  The type of the function being designated as an RPC
+ *                     target
+ */
+#define UVISOR_BOX_RPC_GATEWAY(box_name, fn_name, fn_type, ...) \
+    static uint32_t __sgw_##fn_name(uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3) \
+    { \
+        /* XXX Note that p0,p1,p2,p3 may have garbage in them if not all params
+         * are specified by the fn_params. */ \
+        TFN_Ptr fp = (TFN_Ptr) fn_name; \
+        return rpc_fncall(p0, p1, p2, p3, fp, box_name##_rpc_receive_q_id); /* XXX queue id directly used here is bad */\
+    } \
+    \
+    /* Instanstiate the gateway. This gets resolved at link-time. */ \
+    extern "C" TRPCGateway const fn_name##_rpc_gateway = { \
+        .load_r12 = LOAD_R12_PC_OPCODE(__UVISOR_OFFSETOF(TRPCGateway, load_r12), \
+                                       __UVISOR_OFFSETOF(TRPCGateway, function)), \
+        .bx_r12   = 0x4760, /* bx r12 */ \
+        .magic    = UVISOR_RPC_GATEWAY_MAGIC, \
+        .box_ptr  = (uint32_t) &box_name##_cfg_ptr, \
+        .function = (uint32_t) __sgw_##fn_name, \
+    }; \
+    \
+    /* Pointer to the gateway we just created. The pointer is located in a
+     * discoverable linker section. */ \
+    __attribute__((section(".keep.uvisor.rpc_gateway_ptr"))) \
+    static uint32_t const fn_name##_rpc_gateway_ptr = (uint32_t) &fn_name##_rpc_gateway; \
+    \
+    /* Declare the actual gateway. */ \
+    UVISOR_EXTERN fn_type (*sgw_##fn_name)(__VA_ARGS__) __attribute__((alias(UVISOR_TO_STRING(fn_name##_rpc_gateway))));
+
+/** RPC gateway structure
+ *
+ * This struct is packed because we must ensure that the `branch` field has
+ * padding before itself and will be located at a valid instruction location,
+ * and that the `function` field is at a pre-determined offset from the
+ * `branch` field.
+ */
+typedef struct {
+    uint32_t load_r12;
+    uint16_t bx_r12;
+    uint32_t magic;
+    uint32_t box_ptr; /* Do we want a pointer to box config or pointer to
+    queue? Probably to box config, so we can, in the future, look up RPC ACLs.
+    */
+    uint32_t function; /* It's like a pretend literal pool. */
+} UVISOR_PACKED __attribute__((aligned(4))) TRPCGateway;
 
 typedef int (*TFN_Ptr)(uint32_t, uint32_t, uint32_t, uint32_t);
 typedef int (*TFN_RPC_Callback)(int);
@@ -56,11 +122,12 @@ typedef struct {
      * caller), and then there are also a bunch of RTOS SVCs. */
 
     /* XXX These are set by the caller, read by the callee */
-    TFN_Ptr fn;
     uint32_t p0;
     uint32_t p1;
     uint32_t p2;
     uint32_t p3;
+
+    TFN_Ptr fn;
 
     /* The caller reads from this this queue. The callee writes to this queue.
      * */
@@ -75,8 +142,8 @@ typedef struct {
     osMessageQId q_id;
 } uvisor_rpc_result_t;
 
-UVISOR_EXTERN int rpc_fncall(osMailQId dest_mail_q_id,
-                             const TFN_Ptr fn, uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3);
+UVISOR_EXTERN uint32_t rpc_fncall(uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3,
+                                  const TFN_Ptr fn, osMailQId dest_mail_q_id);
 
 /* Return a message queue id that the caller can wait on to get a result.
  * XXX This is pure mechanism: the caller can choose to make a thread to wait
@@ -89,8 +156,8 @@ UVISOR_EXTERN int rpc_fncall(osMailQId dest_mail_q_id,
  * as users request different policies.) */
 /* Notice that we don't even need to specify any sort of timeout stuff here.
  * All that policy is decided by the user. */
-UVISOR_EXTERN uvisor_rpc_result_t rpc_fncall_async(osMailQId dest_mail_q_id,
-                                                   const TFN_Ptr fn, uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3);
+UVISOR_EXTERN uvisor_rpc_result_t rpc_fncall_async(uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3,
+                                                   const TFN_Ptr fn, osMailQId dest_mail_q_id);
 
 UVISOR_EXTERN int rpc_fncall_waitfor(osMailQId mail_q_id, uint32_t timeout_ms);
 
