@@ -23,18 +23,19 @@
 
 #define ARRAY_COUNT(x) (sizeof(x) / sizeof(*x))
 
+/* This is the size (in bytes) of the internal result queue type. */
+#ifdef CMSIS_OS_RTX
+#define RESULT_QUEUE_SIZE 38
+#else
+#error "Unknown how big a result queue should be for this OS"
+#endif
+
 #define UVISOR_BOX_RPC_INCOMING_QUEUE(box_name, max_num_outstanding_inbound_rpc) \
     osMailQDef(box_name##_rpc_receive_q, max_num_outstanding_inbound_rpc, uvisor_rpc_message_t); \
     osMailQId(box_name##_rpc_receive_q_id);
 
 #define UVISOR_BOX_RPC_HANDLE(box_name, timeout) \
     rpc_fncall_waitfor(box_name##_rpc_receive_q_id, timeout);
-
-#define UVISOR_BOX_RPC_CALL(box_name, fn_name, p0, p1, p2, p3) \
-    return rpc_fncall(p0, p1, p2, p3, fn_name, box_name##_rpc_receive_q_id);
-
-#define UVISOR_BOX_RPC_CALL_ASYNC(box_name, callback, timeout, fn_name, p0, p1, p2, p3) \
-    return rpc_fncall_async(box_name##_rpc_receive_q_id, callback, timeout, fn_name, p0, p1, p2, p3);
 
 #define UVISOR_BOX_RPC_INIT(box_name) \
     box_name##_rpc_receive_q_id = osMailCreate(osMailQ(box_name##_rpc_receive_q), NULL);
@@ -65,6 +66,8 @@
  * @param fn_type[in]  The type of the function being designated as an RPC
  *                     target
  */
+/* XXX TODO At compile time, limit the maximum number of arguments and ensure
+ * that each argument is sizeof(uint32_t) in size. */
 #define UVISOR_BOX_RPC_GATEWAY(box_name, fn_name, fn_type, ...) \
     static uint32_t __sgw_##fn_name(uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3) \
     { \
@@ -109,7 +112,7 @@ typedef struct {
     uint32_t function; /* It's like a pretend literal pool. */
 } UVISOR_PACKED __attribute__((aligned(4))) TRPCGateway;
 
-typedef int (*TFN_Ptr)(uint32_t, uint32_t, uint32_t, uint32_t);
+typedef uint32_t (*TFN_Ptr)(uint32_t, uint32_t, uint32_t, uint32_t);
 typedef int (*TFN_RPC_Callback)(int);
 
 /* Private for use only by uVisor lib, but the size of this type must be known
@@ -134,14 +137,14 @@ typedef struct {
     osMessageQId result_q_id;
 } uvisor_rpc_message_t;
 
+/* This is the object to wait on for a result. */
 typedef struct {
-    /* This is the queue to wait on for a result. */
-    osMessageQDef_t *q; /* We have to include the queue def so that we
-                           can delete it when the result queue is no longer
-                           needed. */
-    osMessageQId q_id;
+    uint8_t _internal_data[RESULT_QUEUE_SIZE];
 } uvisor_rpc_result_t;
 
+/* This synchronous function is easy-mode. It gets you talkin' with the other
+ * box, but not in a mutally distrustful fashion: you have to trust that the
+ * target box will eventually return. */
 UVISOR_EXTERN uint32_t rpc_fncall(uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3,
                                   const TFN_Ptr fn, osMailQId dest_mail_q_id);
 
@@ -156,8 +159,9 @@ UVISOR_EXTERN uint32_t rpc_fncall(uint32_t p0, uint32_t p1, uint32_t p2, uint32_
  * as users request different policies.) */
 /* Notice that we don't even need to specify any sort of timeout stuff here.
  * All that policy is decided by the user. */
-UVISOR_EXTERN uvisor_rpc_result_t rpc_fncall_async(uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3,
-                                                   const TFN_Ptr fn, osMailQId dest_mail_q_id);
+UVISOR_EXTERN void rpc_fncall_async(uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3,
+                                    const TFN_Ptr fn, osMailQId dest_mail_q_id,
+                                    uvisor_rpc_result_t * queue);
 
 UVISOR_EXTERN int rpc_fncall_waitfor(osMailQId mail_q_id, uint32_t timeout_ms);
 
@@ -165,6 +169,8 @@ UVISOR_EXTERN int rpc_fncall_waitfor(osMailQId mail_q_id, uint32_t timeout_ms);
  * Wait for the result of a previously started asynchronous rpc. After this
  * call, ret will contain the return value of the rpc. The return value of this
  * function may indicate that there was a timeout with non-zero. */
-UVISOR_EXTERN int rpc_fncall_wait(uvisor_rpc_result_t *result, uint32_t timeout_ms, int *ret);
+UVISOR_EXTERN int rpc_fncall_wait(uvisor_rpc_result_t * result, uint32_t timeout_ms, uint32_t * ret);
+
+UVISOR_EXTERN void rpc_init_result(uvisor_rpc_result_t * queue);
 
 #endif
