@@ -29,6 +29,7 @@
 
 #define HEAP_ACTIVE  0
 #define HEAP_PROCESS 1
+#define HEAP_ZERO    2
 
 /* Use printf with caution inside malloc: printf may allocate memory itself,
    so using printf in malloc may lead to recursive calls! */
@@ -112,17 +113,18 @@ static void * memory(void * ptr, size_t size, int heap, int operation)
     }
     /* Check if we need to aquire the mutex. */
     int mutexed = is_kernel_initialized() &&
-                  ((heap == HEAP_PROCESS) || __uvisor_ps->index.box_heap == __uvisor_ps->index.active_heap);
+                  ((heap == HEAP_PROCESS || heap == HEAP_ZERO) || __uvisor_ps->index.box_heap == __uvisor_ps->index.active_heap);
+    RtxBoxIndex * uvisor_ps = heap == HEAP_ZERO ? __uvisor_ps /* XXX */ : __uvisor_ps;
     void * allocator = (heap == HEAP_PROCESS) ?
-                       (__uvisor_ps->index.box_heap) :
-                       (__uvisor_ps->index.active_heap);
+                       (uvisor_ps->index.box_heap) :
+                       (uvisor_ps->index.active_heap);
 
     /* Aquire the mutex if required.
      * TODO: Mutex use is very coarse here. It may be sufficient to guard
      * the `rt_alloc_mem` and `rt_free_mem` functions in `uvisor_allocator.c`.
      * However, it is simpler to do it here for now. */
     if (mutexed) {
-        osMutexWait(__uvisor_ps->mutex_id, osWaitForever);
+        osMutexWait(uvisor_ps->mutex_id, osWaitForever);
     }
     /* Perform the required operation. */
     switch(operation)
@@ -141,7 +143,7 @@ static void * memory(void * ptr, size_t size, int heap, int operation)
     }
     /* Release the mutex if required. */
     if (mutexed) {
-        osMutexRelease(__uvisor_ps->mutex_id);
+        osMutexRelease(uvisor_ps->mutex_id);
     }
     return ret;
 }
@@ -186,3 +188,14 @@ void * realloc_p(void * ptr, size_t size) {
 void free_p(void * ptr) {
     memory(ptr, 0, HEAP_PROCESS, OP_FREE);
 }
+#if 0
+void * malloc_0(size_t size) {
+    return memory(NULL, size, HEAP_ZERO, OP_MALLOC);
+}
+void * realloc_0(void * ptr, size_t size) {
+    return memory(ptr, size, HEAP_ZERO, OP_REALLOC);
+}
+void free_0(size_t size) {
+    memory(ptr, 0, HEAP_ZERO, OP_FREE);
+}
+#endif
