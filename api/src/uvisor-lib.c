@@ -42,7 +42,13 @@ int uvisor_lib_init(void)
      * make use of osRegisterForOsEvents we recommend to
      * osRegisterForOsEvents(NULL) to disable further registrations (which if
      * allowed would be a backdoor). */
-     osRegisterForOsEvents(&uvisor_export_table->os_event_observer);
+    osRegisterForOsEvents(&uvisor_export_table->os_event_observer);
+
+    /* XXX Remove the hackiness */
+    /* XXX This isn't getting called for some reason. I guess build problems or
+     * something. Not sure what's up... */
+    extern int rpc_init_memory_funtime(void);
+    return rpc_init_memory_funtime();
 
     return 0;
 }

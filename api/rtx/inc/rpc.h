@@ -23,22 +23,16 @@
 
 #define ARRAY_COUNT(x) (sizeof(x) / sizeof(*x))
 
-/* This is the size (in bytes) of the internal result queue type. */
+/* This is the size (in bytes) of the internal queue type. */
 #ifdef CMSIS_OS_RTX
 #define RESULT_QUEUE_SIZE 38
+#define CALLEE_QUEUE_SIZE 24
 #else
-#error "Unknown how big a result queue should be for this OS"
+#error "Unknown how big a the RPC queues should be for this OS"
 #endif
 
-#define UVISOR_BOX_RPC_INCOMING_QUEUE(box_name, max_num_outstanding_inbound_rpc) \
-    osMailQDef(box_name##_rpc_receive_q, max_num_outstanding_inbound_rpc, uvisor_rpc_message_t); \
-    osMailQId(box_name##_rpc_receive_q_id);
-
-#define UVISOR_BOX_RPC_HANDLE(box_name, timeout) \
-    rpc_fncall_waitfor(box_name##_rpc_receive_q_id, timeout);
-
-#define UVISOR_BOX_RPC_INIT(box_name) \
-    box_name##_rpc_receive_q_id = osMailCreate(osMailQ(box_name##_rpc_receive_q), NULL);
+/* XXX Move to Box Cfg */
+#define UVISOR_BOX(box_name) (&box_name##_cfg_ptr)
 
 #if defined(__thumb__) && defined(__thumb2__)
 /* This is chosen to be one of the explicitly undefined instructions. */
@@ -74,7 +68,7 @@
         /* XXX Note that p0,p1,p2,p3 may have garbage in them if not all params
          * are specified by the fn_params. */ \
         TFN_Ptr fp = (TFN_Ptr) fn_name; \
-        return rpc_fncall(p0, p1, p2, p3, fp, box_name##_rpc_receive_q_id); /* XXX queue id directly used here is bad */\
+        return rpc_fncall(p0, p1, p2, p3, fp); \
     } \
     \
     /* Instanstiate the gateway. This gets resolved at link-time. */ \
@@ -83,7 +77,7 @@
                                        __UVISOR_OFFSETOF(TRPCGateway, function)), \
         .bx_r12   = 0x4760, /* bx r12 */ \
         .magic    = UVISOR_RPC_GATEWAY_MAGIC, \
-        .box_ptr  = (uint32_t) &box_name##_cfg_ptr, \
+        .box_ptr  = (uint32_t) UVISOR_BOX(box_name), \
         .function = (uint32_t) __sgw_##fn_name, \
     }; \
     \
@@ -142,11 +136,15 @@ typedef struct {
     uint8_t _internal_data[RESULT_QUEUE_SIZE];
 } uvisor_rpc_result_t;
 
+/* This is the queue to wait on for incoming RPC. */
+typedef struct {
+    uint8_t _internal_data[CALLEE_QUEUE_SIZE];
+} uvisor_rpc_callee_queue_t;
+
 /* This synchronous function is easy-mode. It gets you talkin' with the other
  * box, but not in a mutally distrustful fashion: you have to trust that the
  * target box will eventually return. */
-UVISOR_EXTERN uint32_t rpc_fncall(uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3,
-                                  const TFN_Ptr fn, osMailQId dest_mail_q_id);
+UVISOR_EXTERN uint32_t rpc_fncall(uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3, const TFN_Ptr fn);
 
 /* Return a message queue id that the caller can wait on to get a result.
  * XXX This is pure mechanism: the caller can choose to make a thread to wait
@@ -159,11 +157,10 @@ UVISOR_EXTERN uint32_t rpc_fncall(uint32_t p0, uint32_t p1, uint32_t p2, uint32_
  * as users request different policies.) */
 /* Notice that we don't even need to specify any sort of timeout stuff here.
  * All that policy is decided by the user. */
-UVISOR_EXTERN void rpc_fncall_async(uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3,
-                                    const TFN_Ptr fn, osMailQId dest_mail_q_id,
-                                    uvisor_rpc_result_t * queue);
+UVISOR_EXTERN int rpc_fncall_async(uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3, const TFN_Ptr fn,
+                                   uvisor_rpc_result_t * queue);
 
-UVISOR_EXTERN int rpc_fncall_waitfor(osMailQId mail_q_id, uint32_t timeout_ms);
+UVISOR_EXTERN int rpc_fncall_waitfor(uvisor_rpc_callee_queue_t * queue, uint32_t timeout_ms);
 
 /* XXX TODO Re-word this.
  * Wait for the result of a previously started asynchronous rpc. After this
@@ -171,6 +168,10 @@ UVISOR_EXTERN int rpc_fncall_waitfor(osMailQId mail_q_id, uint32_t timeout_ms);
  * function may indicate that there was a timeout with non-zero. */
 UVISOR_EXTERN int rpc_fncall_wait(uvisor_rpc_result_t * result, uint32_t timeout_ms, uint32_t * ret);
 
-UVISOR_EXTERN void rpc_init_result(uvisor_rpc_result_t * queue);
+UVISOR_EXTERN size_t rpc_pool_size_for_callee_queue(size_t max_num_items);
+UVISOR_EXTERN int rpc_init_result(uvisor_rpc_result_t * queue);
+UVISOR_EXTERN int rpc_init_callee_queue(uvisor_rpc_callee_queue_t * queue, uint8_t * pool, size_t pool_size,
+                                        size_t max_num_items,
+                                        const TFN_Ptr fn_ptr_array[], size_t fn_count);
 
 #endif
