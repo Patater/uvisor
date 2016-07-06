@@ -128,21 +128,47 @@ static size_t g_fn_entries;
 static const size_t max_num_rpc_target_functions = 16;
 
 #ifdef CMSIS_OS_RTX
+
+/* Return the number of bytes needed for a pool that would back the pointer
+ * storage for a mail queue. */
+static size_t rtx_mail_queue_q_size(size_t max_num_items)
+{
+    /* The queue size in number of items */
+    size_t queue_sz = max_num_items;
+
+    return 4 + queue_sz * sizeof(void *);
+}
+
 /* Return how many bytes a pool must be able to hold in order to hold the
  * specified number of items as well as any overhead that must also be stored
  * in the pool. */
 UVISOR_EXTERN size_t rpc_pool_size_for_callee_queue(size_t max_num_items)
 {
-    /* The queue size in number of items */
-    size_t queue_sz = max_num_items;
 
     /* This size information is obtained from the CMSIS RTOS macro `osMailQDef`
      * (mbed-os/core/rtos/rtx/TARGET_CORTEX_M/cmsis_os.h). The size information
      * is internal RTX implementation detail that we have to get into here in
      * order to be able to dynamically allocate queues (instead of just using
      * the macros CMSIS RTOS provides for statically allocating RTX queues). */
-    size_t q_q_size = 4 + queue_sz;
-    size_t q_m_size = 3 + ((sizeof(uvisor_rpc_message_t) + 3) / 4) * queue_sz;
+    size_t q_q_size = rtx_mail_queue_q_size(max_num_items);
+    //size_t q_m_size = 3 + ((sizeof(uvisor_rpc_message_t) + 3) / 4) * queue_sz;
+    /* XXX Even though this is what the macro does, this isn't large enough!
+     * The sizeof(struct OS_BM) maybe used to be 3, but now is 12! Actually, we
+     * didn't account for the OS_BM overhead which is per-entry (per-block) and
+     * not one fixed one.
+     */
+    //size_t q_m_size = 3 + ((item_sz + 3) / 4) * queue_sz;
+
+    /* Numbers obtained from svcMailCreate */
+    /*    blk_sz = (queue_def->item_sz + 3U) & (uint32_t)~3U;
+     *    _init_box(pool, sizeof(struct OS_BM) + (queue_def->queue_sz * blk_sz), blk_sz);
+     */
+    /* The queue size in number of items */
+    size_t queue_sz = max_num_items;
+    size_t item_sz = sizeof(uvisor_rpc_message_t);
+    size_t blk_sz = (item_sz + 3U) & (uint32_t)~3U;
+    size_t box_size = 12 + queue_sz * blk_sz;
+    size_t q_m_size = box_size;
 
     return q_q_size + q_m_size;
 }
@@ -243,16 +269,33 @@ UVISOR_EXTERN int rpc_init_memory_funtime(void)
     return 0;
 }
 
+/* Do a big hack to get RPC memories initialized (and hacky box 0 allocator). Ideally, if we need this at
+ * all, we'd call it from uvisor_lib_init. */
+SecureAllocator box_0_allocator;
 class HackyMagicSuperFuntime
 {
 public:
     HackyMagicSuperFuntime()
     {
         rpc_init_memory_funtime();
+
+        box_0_allocator = secure_allocator_create_with_pool(some_memory, sizeof(some_memory));
     }
+
+    uint8_t some_memory[6000];
 };
 
 HackyMagicSuperFuntime way_too_funtime;
+
+UVISOR_EXTERN void * malloc_0(size_t bytes)
+{
+    return secure_malloc(box_0_allocator, bytes);
+}
+
+UVISOR_EXTERN void free_0(void * ptr)
+{
+    secure_free(box_0_allocator, ptr);
+}
 
 UVISOR_EXTERN int rpc_init_callee_queue(uvisor_rpc_callee_queue_t * queue, uint8_t * pool, size_t pool_size,
                                         size_t max_num_items,
@@ -277,7 +320,7 @@ UVISOR_EXTERN int rpc_init_callee_queue(uvisor_rpc_callee_queue_t * queue, uint8
      * The memory for the items in the queue comes directly after the memory
      * for the pointers to items in the queue (including any overhead). */
     void * const q_q_mem = pool;
-    void * const q_m_mem = &pool[4 + max_num_items];
+    void * const q_m_mem = &pool[rtx_mail_queue_q_size(max_num_items)];
     q->pool[0] = q_q_mem;
     q->pool[1] = q_m_mem;
 
@@ -287,6 +330,26 @@ UVISOR_EXTERN int rpc_init_callee_queue(uvisor_rpc_callee_queue_t * queue, uint8
 
     /* Create the mail queue */
     q->callee_q_id = osMailCreate(&q->callee_q, NULL);
+    /* How to check for errors here? Seems I got back a bogus callee_q_id... SHould
+     * be NULL if I get an error, but it isn't NULL. Does this allocate
+     * anything on a pool? Does that allocation overflow someplace it
+     * shouldn't? This should be equal to the address of the pool. */
+    /* _init_box fucks up the queue_def->pool (q->callee_q.pool) */
+    /* This is RTX an specific check for making sure the queue didn't get
+     * clobbered. */
+    if ((void *) q->callee_q_id != (void *) q->pool) {
+        /* 0x130e12fc */
+        /* Something very bad happened in osMailCreate. */
+        return -1;
+    }
+
+    /* This is RTX an specific check for making sure the queue didn't get
+     * clobbered in another place. */
+    if (q->callee_q.queue_sz != max_num_items)
+    {
+        /* Something very bad happened in osMailCreate. */
+        return -1;
+    }
 
     /* Register all functions this queue will handle with uVisor lib, so that
      * it knows where to route RPC messages to. */
@@ -303,9 +366,11 @@ UVISOR_EXTERN int rpc_init_callee_queue(uvisor_rpc_callee_queue_t * queue, uint8
 /* -------------------------------- */
 
 /* Note: This function runs in caller context. */
+UVISOR_EXTERN int uvisor_rpc_message_local(uvisor_rpc_message_t * msg);
 UVISOR_EXTERN int rpc_fncall_async(uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3, const TFN_Ptr fn,
                                    uvisor_rpc_result_t * result)
 {
+    int status;
     uvisor_rpc_result_internal_t * r = (uvisor_rpc_result_internal_t *) result;
 
     /* TODO - check the type of the call target.
@@ -315,19 +380,61 @@ UVISOR_EXTERN int rpc_fncall_async(uint32_t p0, uint32_t p1, uint32_t p2, uint32
             - target queue from lib config
     */
 
-    uvisor_rpc_message_t * msg;
+    /* Note: This could be on stack, because uVisor will make a copy for remote
+     * delivery in the callee box. However, for local delivery, we need to not
+     * use the stack so that the message remains allocated for the local
+     * callee. The local callee would need to free the message. This is fine,
+     * because there is no inter-box trusting going on about the freeing; each
+     * box frees and allocates only its own memory. */
+    uvisor_rpc_message_t * msg = (uvisor_rpc_message_t *) malloc(sizeof(*msg));
 
-    uvisor_rpc_callee_queue_internal_t * q = get_queue_for_function(fn);
+    msg->fn = fn;
+    msg->p0 = p0;
+    msg->p1 = p1;
+    msg->p2 = p2;
+    msg->p3 = p3;
+    msg->result_q_id = r->result_q_id; /* TODO make uVisor verify that this caller box is the owner of this result queue */
+
+    /* XXX TODO Implement this function. Make it copy the message to the callee
+     * box context, verify the ownership of the result queue, and deprivilege
+     * to call uvisor_rpc_message_local, and execute the uVisor firewall (to
+     * prevent any allocation in the callee box if firewall rules fail). When
+     * is the msg freed? In uvisor_rpc_message_local, a uVisor lib function.
+     * What happens if the msg is not freed? then the callee box's own heap
+     * fills up and its the callee box's own fault. */ /* XXX TODO need ability
+    to allocate memory from uVisor privileged
+    mode in a target box */
+    //uvisor_rpc_msg_send(&msg);
+    /* XXX TODO implement in uVisor. uVisor can't
+    know from the target box if the target box could put it in the queue or
+    not... figure out how to deal with that. When we do real IPC with real
+    blocking semantics and such, we don't need to deal with this problem
+    because we'll have just one IPC queue and uVisor itself will know if the
+    message was able to go in or not. */
+    status = uvisor_rpc_message_local(msg);
+
+    free(msg);
+
+    return status;
+}
+
+/* Note: This (XXX TODO should) run in callee context. The msg is assumed to be available in
+ * callee context. */
+UVISOR_EXTERN int uvisor_rpc_message_local(uvisor_rpc_message_t * msg)
+{
+    uvisor_rpc_message_t * qmsg;
+    uvisor_rpc_callee_queue_internal_t * q = get_queue_for_function(msg->fn);
     if (q == NULL) {
         /* Ignore calls to functions that are not RPC targets */
-        return;
+        return -1;
     }
 
     /* XXX We can't read the callee queue for this function, because it is in
      * callee box context. We need to store the callee_q_id in a publicly
-     * readable place. */
+     * readable place, for now. If only uVisor knew which queue to use for
+     * which function, that'd also be fine. */
     //const osMailQId dest_mail_q_id = q->callee_q_id;
-    const osMailQId dest_mail_q_id = get_queue_id_for_function(fn); /* XXX TODO check for NULL */
+    const osMailQId dest_mail_q_id = get_queue_id_for_function(msg->fn); /* XXX TODO check for NULL */
 
     /* XXX The pool for the mail should be in box private memory, so this needs
      * some rework. uVisor needs to do the data copy on behalf of the sender if
@@ -340,40 +447,45 @@ UVISOR_EXTERN int rpc_fncall_async(uint32_t p0, uint32_t p1, uint32_t p2, uint32
      * calls into it forever, even if the async call is supposed to timeout. */
     /* XXX This doesn't work because the allocated memory comes from the callee box
      * context. */
-    msg = (uvisor_rpc_message_t *) osMailAlloc(dest_mail_q_id, 0);
-    if (!msg) {
+    qmsg = (uvisor_rpc_message_t *) osMailAlloc(dest_mail_q_id, 0);
+    if (!qmsg) {
         /* XXX TODO better error message for no room in destination queue */
         return -1;
     }
-    msg->fn = fn;
-    msg->p0 = p0;
-    msg->p1 = p1;
-    msg->p2 = p2;
-    msg->p3 = p3;
-    msg->result_q_id = r->result_q_id; /* XXX TODO make uVisor populate this, so it can be trusted. */
+    qmsg->fn = msg->fn;
+    qmsg->p0 = msg->p0;
+    qmsg->p1 = msg->p1;
+    qmsg->p2 = msg->p2;
+    qmsg->p3 = msg->p3;
+    qmsg->result_q_id = msg->result_q_id; /* TODO make uVisor populate this, so it can be trusted. */
 
     /* XXX Why did we want to have send queues within the caller process for
      * RPC? Maybe because this function wouldn't be able to use the receive
-     * queue in the callee process directly. For now, this is ok because
-     * prototyping. After we add uVisor firewall, of course we can't use the
-     * queue directly. */
-    osMailPut(dest_mail_q_id, msg);
+     * queue in the callee process directly. (XXX Yes, that's a benefit. Also a
+     * benenfit is no uVisor context switch overhead for sending messages). For
+     * now, this is ok because prototyping. After we add uVisor firewall, of
+     * course we can't use the queue directly. */
+    osMailPut(dest_mail_q_id, qmsg);
+
+    return 0;
 }
 
 /* Note: This function runs in caller context. */
 UVISOR_EXTERN uint32_t rpc_fncall(uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3, const TFN_Ptr fn)
 {
-    /* Allocate result queue on stack here. */
-    uvisor_rpc_result_t result;
-    rpc_init_result(&result);
+    /* XXX TODO Allocate result queue on stack here. */
+    //uvisor_rpc_result_t result;
+    uvisor_rpc_result_t *result = (uvisor_rpc_result_t *) malloc_0(sizeof(*result));
+    rpc_init_result(result);
 
-    rpc_fncall_async(p0, p1, p2, p3, fn, &result);
+    rpc_fncall_async(p0, p1, p2, p3, fn, result);
 
     /* Wait forever for a non-error, valid result from rpc_fncall_wait */
     for (;;) {
         uint32_t ret;
-        int status = rpc_fncall_wait(&result, osWaitForever, &ret);
+        int status = rpc_fncall_wait(result, osWaitForever, &ret);
         if (!status) {
+            free(result);
             return ret;
         }
     }

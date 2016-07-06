@@ -174,4 +174,9 @@ UVISOR_EXTERN int rpc_init_callee_queue(uvisor_rpc_callee_queue_t * queue, uint8
                                         size_t max_num_items,
                                         const TFN_Ptr fn_ptr_array[], size_t fn_count);
 
+
+/* XXX Giant Hacks below! */
+UVISOR_EXTERN void * malloc_0(size_t bytes);
+UVISOR_EXTERN void free_0(void * ptr);
+
 #endif
