@@ -60,7 +60,7 @@ extern uint32_t g_page_size;
 extern const void * g_page_heap_start;
 /* Contains the total number of available pages. */
 extern uint8_t g_page_count_total;
-/* Maps the page to the owning box handle. */
-extern page_owner_t g_page_owner_table[];
+/* Contains the page usage mapped by owner. */
+extern uint32_t g_page_owner_map[UVISOR_MAX_BOXES][(UVISOR_PAGE_MAX_COUNT + 31) / 32];
 
 #endif /* __PAGE_ALLOCATOR_H__ */

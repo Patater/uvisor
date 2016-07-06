@@ -25,8 +25,8 @@
  * a relatively low limit to the number of pages.
  * By default a maximum of 16 pages are allowed. This can only be overwritten
  * by the porting engineer for the current platform. */
-#ifndef UVISOR_PAGE_TABLE_MAX_COUNT
-#define UVISOR_PAGE_TABLE_MAX_COUNT ((uint32_t) 16)
+#ifndef UVISOR_PAGE_MAX_COUNT
+#define UVISOR_PAGE_MAX_COUNT ((uint32_t) 16)
 #endif
 /* The number of pages is decided by the page size. A small page size leads to
  * a lot of pages, however, number of pages is capped for efficiency.
@@ -41,5 +41,34 @@
 typedef uint8_t page_owner_t;
 /* Define a unused value for the page table. */
 #define UVISOR_PAGE_UNUSED ((page_owner_t) (-1))
+
+/** Sets the page bit in the page map array.
+ * @param map   an array of `uint32_t` containing the page map
+ * @param page  the index of the page to be set
+ */
+static inline void page_allocator_map_set(uint32_t * const map, uint8_t page)
+{
+    map[page / 32] |= (1UL << (page % 32));
+}
+
+/** Clears the page bit in the page map array.
+ * @param map   an array of `uint32_t` containing the page map
+ * @param page  the index of the page to be set
+ */
+static inline void page_allocator_map_clear(uint32_t * const map, uint8_t page)
+{
+    map[page / 32] &= ~(1UL << (page % 32));
+}
+
+/** Check if the page bit is set int the page map array.
+ * @param map   an array of `uint32_t` containing the page map
+ * @param page  the index of the page to be set
+ * @retval 0    if page bit is not set
+ * @retval !0   if page bit is set
+ */
+static inline uint32_t page_allocator_map_get(const uint32_t * const map, uint8_t page)
+{
+    return (map[page / 32] & (1UL << (page % 32)));
+}
 
 #endif /* __PAGE_ALLOCATOR_CONFIG_H__ */
