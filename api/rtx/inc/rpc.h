@@ -100,9 +100,7 @@ typedef struct {
     uint32_t load_r12;
     uint16_t bx_r12;
     uint32_t magic;
-    uint32_t box_ptr; /* Do we want a pointer to box config or pointer to
-    queue? Probably to box config, so we can, in the future, look up RPC ACLs.
-    */
+    uint32_t box_ptr;
     uint32_t function; /* It's like a pretend literal pool. */
 } UVISOR_PACKED __attribute__((aligned(4))) TRPCGateway;
 
