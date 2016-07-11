@@ -20,13 +20,6 @@
 #include <cstdlib>
 #include <cstring>
 
-/* <http://stackoverflow.com/questions/3385515/static-assert-in-c> */
-#define CTASTR2(pre, post) pre ## post
-#define CTASTR(pre, post) CTASTR2(pre, post)
-#define STATIC_ASSERT(cond, msg) \
-    typedef struct { int CTASTR(static_assertion_failed_, msg) : !!(cond); } \
-            CTASTR(static_assertion_failed_, __COUNTER__)
-
 #ifdef CMSIS_OS_RTX
 /* RTX expects message queue pools have room for 4 (32-bit) words of metadata in
  * addition to the number of words the message queue needs to hold. */
