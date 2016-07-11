@@ -78,10 +78,9 @@
  * @param fn_type[in]  The type of the function being designated as an RPC
  *                     target
  */
-/* XXX TODO At compile time, limit the maximum number of arguments and ensure
- * that each argument is sizeof(uint32_t) in size. */
 #define UVISOR_BOX_RPC_GATEWAY_SYNC(box_name, gw_name, fn_name, fn_type, ...) \
     STATIC_ASSERT(sizeof(fn_type) <= sizeof(uint32_t), gw_name##_return_type_too_big); \
+    UVISOR_BOX_RPC_GATEWAY_ARG_CHECK(gw_name, __VA_ARGS__) \
     UVISOR_BOX_RPC_GATEWAY_SYNC_CALLER(fn_name, __VA_ARGS__) \
     /* Instanstiate the gateway. This gets resolved at link-time. */ \
     UVISOR_EXTERN TRPCGateway const gw_name##_rpc_gateway = { \
@@ -119,6 +118,7 @@
  */
 #define UVISOR_BOX_RPC_GATEWAY_ASYNC(box_name, gw_name, fn_name, fn_type, ...) \
     STATIC_ASSERT(sizeof(fn_type) <= sizeof(uint32_t), gw_name##_return_type_too_big); \
+    UVISOR_BOX_RPC_GATEWAY_ARG_CHECK(gw_name, __VA_ARGS__) \
     UVISOR_BOX_RPC_GATEWAY_ASYNC_CALLER(fn_name, __VA_ARGS__) \
     /* Instanstiate the gateway. This gets resolved at link-time. */ \
     UVISOR_EXTERN TRPCGateway const gw_name##_rpc_gateway = { \
@@ -136,6 +136,33 @@
     \
     /* Declare the actual gateway. */ \
     UVISOR_EXTERN int (*gw_name)(uvisor_rpc_result_t *, __VA_ARGS__) __attribute__((alias(UVISOR_TO_STRING(gw_name##_rpc_gateway))));
+
+#define UVISOR_BOX_RPC_GATEWAY_ARG_CHECK(gw_name, ...) \
+    __UVISOR_BOX_MACRO(__VA_ARGS__, UVISOR_BOX_RPC_GATEWAY_ARG_CHECK_4, \
+                                    UVISOR_BOX_RPC_GATEWAY_ARG_CHECK_3, \
+                                    UVISOR_BOX_RPC_GATEWAY_ARG_CHECK_2, \
+                                    UVISOR_BOX_RPC_GATEWAY_ARG_CHECK_1, \
+                                    UVISOR_BOX_RPC_GATEWAY_ARG_CHECK_0)(gw_name, __VA_ARGS__)
+
+#define UVISOR_BOX_RPC_GATEWAY_ARG_CHECK_0(gw_name)
+
+#define UVISOR_BOX_RPC_GATEWAY_ARG_CHECK_1(gw_name, p0_type) \
+    STATIC_ASSERT(sizeof(p0_type) <= sizeof(uint32_t), gw_name##_param_0_too_big);
+
+#define UVISOR_BOX_RPC_GATEWAY_ARG_CHECK_2(gw_name, p0_type, p1_type) \
+    STATIC_ASSERT(sizeof(p0_type) <= sizeof(uint32_t), gw_name##_param_0_too_big); \
+    STATIC_ASSERT(sizeof(p1_type) <= sizeof(uint32_t), gw_name##_param_1_too_big);
+
+#define UVISOR_BOX_RPC_GATEWAY_ARG_CHECK_3(gw_name, p0_type, p1_type, p2_type) \
+    STATIC_ASSERT(sizeof(p0_type) <= sizeof(uint32_t), gw_name##_param_0_too_big); \
+    STATIC_ASSERT(sizeof(p1_type) <= sizeof(uint32_t), gw_name##_param_1_too_big); \
+    STATIC_ASSERT(sizeof(p2_type) <= sizeof(uint32_t), gw_name##_param_2_too_big);
+
+#define UVISOR_BOX_RPC_GATEWAY_ARG_CHECK_4(gw_name, p0_type, p1_type, p2_type, p3_type) \
+    STATIC_ASSERT(sizeof(p0_type) <= sizeof(uint32_t), gw_name##_param_0_too_big); \
+    STATIC_ASSERT(sizeof(p1_type) <= sizeof(uint32_t), gw_name##_param_1_too_big); \
+    STATIC_ASSERT(sizeof(p2_type) <= sizeof(uint32_t), gw_name##_param_2_too_big); \
+    STATIC_ASSERT(sizeof(p3_type) <= sizeof(uint32_t), gw_name##_param_3_too_big);
 
 #define UVISOR_BOX_RPC_GATEWAY_SYNC_CALLER(fn_name, ...) \
     __UVISOR_BOX_MACRO(__VA_ARGS__, UVISOR_BOX_RPC_GATEWAY_SYNC_CALLER_4, \
