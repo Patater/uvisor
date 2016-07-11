@@ -500,7 +500,13 @@ UVISOR_EXTERN uint32_t rpc_fncall(uint32_t p0, uint32_t p1, uint32_t p2, uint32_
     int status;
     /* XXX TODO Allocate result queue on stack here. */
     //uvisor_rpc_result_t result;
+again:
     uvisor_rpc_result_t *result = (uvisor_rpc_result_t *) malloc_0(sizeof(*result));
+    if (!result)
+    {
+        /* No memory, but no way to fail. Try again. */
+        goto again;
+    }
     rpc_init_result(result);
 
     /* Wait forever for a non-error, valid result from rpc_fncall_async_timeout. */
