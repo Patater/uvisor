@@ -525,7 +525,7 @@ again:
         uint32_t ret;
         int status = rpc_fncall_wait(result, osWaitForever, &ret);
         if (!status) {
-            free(result);
+            free_0(result);
             return ret;
         }
     }
