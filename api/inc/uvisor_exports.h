@@ -52,6 +52,23 @@
 /* array count macro */
 #define UVISOR_ARRAY_COUNT(x) (sizeof(x)/sizeof(x[0]))
 
+/** Static Assertion Macro
+ *
+ * This macro is relatively portable, and the macro works from inside or
+ * outside function scope.
+ *
+ * Code is CC BY-SA
+ * Based on bobbogo's answer to the following question on Stack Overflow
+ *   <http://stackoverflow.com/questions/3385515/static-assert-in-c>
+ *   <http://stackoverflow.com/users/470195/bobbogo>
+ * Modified for style */
+#define _UVISOR_CTASTR2(pre, post) pre##post
+#define _UVISOR_CTASTR(pre, post) _UVISOR_CTASTR2(pre, post)
+#define UVISOR_STATIC_ASSERT(cond, msg) \
+    typedef struct { \
+        int _UVISOR_CTASTR(static_assertion_failed_, msg) : !!(cond); \
+    } _UVISOR_CTASTR(static_assertion_failed_, __COUNTER__)
+
 /* convert macro argument to string */
 /* note: this needs one level of indirection, accomplished with the helper macro
  *       __UVISOR_TO_STRING */
