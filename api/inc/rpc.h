@@ -20,6 +20,14 @@
 #include "api/inc/uvisor_exports.h"
 #include <stdint.h>
 
+/** Specify the maximum number of incoming RPC messages for a box
+ *
+ * @param max_num_incoming_rpc The maximum number of incoming RPC messages for
+ *                             a box
+ */
+/* XXX This is a dummy implementation. */
+#define UVISOR_BOX_RPC_MAXIMUM_INCOMING_RPC(max_num_incoming_rpc)
+
 /* This is the token to wait on for the result of an asynchronous RPC. */
 typedef uint32_t uvisor_rpc_result_t;
 
