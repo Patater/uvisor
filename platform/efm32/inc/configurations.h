@@ -33,7 +33,8 @@
 #define SRAM_OFFSET  0x0
 
 /* Minimum memory requirements */
-#define FLASH_LENGTH_MIN 0x10000    /* 64k */
+//#define FLASH_LENGTH_MIN 0x10000    /* 64k */
+#define FLASH_LENGTH_MIN 0x20000    /* XXX LOL PRETENDO 128k */
 #define SRAM_LENGTH_MIN  0x8000     /* 32k */
 
 /* Host platform memory requirements */

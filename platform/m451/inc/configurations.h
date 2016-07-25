@@ -32,7 +32,8 @@
      * These symbols basically encode the following:
      *   FLASH_LENGTH_MIN = min(FLASH_LENGTH_i) for i in device family
      *   SRAM_LENGTH_MIN  = min(SRAM_LENGTH_i)  for i in device family */
-#   define FLASH_LENGTH_MIN 0xA000
+//#   define FLASH_LENGTH_MIN 0xA000
+#   define FLASH_LENGTH_MIN 0x20000    /* XXX LOL PRETENDO */
 #   define SRAM_LENGTH_MIN  0x4000
 
     /* Host platform memory requirements */
