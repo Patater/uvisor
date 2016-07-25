@@ -170,6 +170,15 @@ void main_entry(void)
         /* finish initialization */
         uvisor_init_post();
 
+#ifndef NDEBUG
+        /* Run internal unit tests */
+        extern void uvisor_pool_queue_test(void);
+        uvisor_pool_queue_test();
+
+        extern void uvisor_pool_test(void);
+        uvisor_pool_test();
+#endif
+
         /* switch to unprivileged mode; this is possible as uvisor code is
          * readable by unprivileged code and only the key-value database is
          * protected from the unprivileged mode */
