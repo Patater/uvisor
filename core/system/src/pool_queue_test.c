@@ -1,7 +1,7 @@
 #include "uvisor.h"
 #include "api/inc/pool_queue_exports.h"
+#include "uvisor.h"
 #include <string.h>
-#include <assert.h>
 
 /* Only build tests for debug builds. */
 #ifndef NDEBUG
