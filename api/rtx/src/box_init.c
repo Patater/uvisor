@@ -49,8 +49,10 @@ void __uvisor_initialize_rpc_queues(void)
             uvisor_error(USER_NOT_ALLOWED);
         }
 
-        /* Decrement the semaphore so that the first pend operation will block.
-         * */
+        /* Semaphores are created with their value initialized to count. We
+         * want the semaphore to start at zero. Decrement the semaphore, so it
+         * starts with a value of zero. This will allow the first pend to
+         * block. */
         if (uvisor_semaphore_pend(semaphore, 0)) {
             uvisor_error(USER_NOT_ALLOWED);
         }
