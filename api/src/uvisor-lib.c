@@ -42,7 +42,10 @@ int uvisor_lib_init(void)
      * make use of osRegisterForOsEvents we recommend to
      * osRegisterForOsEvents(NULL) to disable further registrations (which if
      * allowed would be a backdoor). */
-     osRegisterForOsEvents(&uvisor_export_table->os_event_observer);
+    osRegisterForOsEvents(&uvisor_export_table->os_event_observer);
+
+    extern void __uvisor_initialize_rpc_queues(void);
+    __uvisor_initialize_rpc_queues();
 
     return 0;
 }
