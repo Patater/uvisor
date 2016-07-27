@@ -18,6 +18,7 @@
 #define __UVISOR_API_BOX_CONFIG_H__
 
 #include "api/inc/uvisor_exports.h"
+#include "api/inc/rpc_exports.h"
 #include <stddef.h>
 #include <stdint.h>
 
@@ -46,6 +47,7 @@ UVISOR_EXTERN const uint32_t __uvisor_mode;
         sizeof(RtxBoxIndex), \
         { \
             0, \
+            sizeof(uvisor_rpc_outgoing_message_queue_t), \
         }, \
         NULL, \
         NULL, \
@@ -67,7 +69,8 @@ UVISOR_EXTERN const uint32_t __uvisor_mode;
                     (UVISOR_MIN_STACK(stack_size) + \
                     (context_size) + \
                     (__uvisor_box_heapsize) + \
-                    sizeof(RtxBoxIndex) \
+                    sizeof(RtxBoxIndex) + \
+                    sizeof(uvisor_rpc_outgoing_message_queue_t) \
                 ) \
             * 8) \
         / 6)]; \
@@ -80,6 +83,7 @@ UVISOR_EXTERN const uint32_t __uvisor_mode;
         sizeof(RtxBoxIndex), \
         { \
             context_size, \
+            sizeof(uvisor_rpc_outgoing_message_queue_t), \
         }, \
         __uvisor_box_lib_config, \
         __uvisor_box_namespace, \
