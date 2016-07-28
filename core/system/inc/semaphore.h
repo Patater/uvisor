@@ -14,12 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "api/inc/lib_hook_exports.h"
-#include "api/inc/box_init.h"
-#include "api/inc/uvisor_semaphore.h"
+#ifndef __SEMAPHORE_H__
+#define __SEMAPHORE_H__
 
-const UvisorLibHooks __uvisor_lib_hooks = {
-    .box_init = __uvisor_lib_box_init,
-    .semaphore_init = __uvisor_semaphore_init,
-    .semaphore_pend = __uvisor_semaphore_pend,
-};
+#include "api/inc/uvisor_exports.h"
+#include "api/inc/uvisor_semaphore_exports.h"
+
+/* This function is not safe to call from interrupt context. */
+int semaphore_init(UvisorSemaphore * semaphore, int32_t count);
+
+/* This function is not safe to call from interrupt context, even if the
+ * timeout is zero. */
+int semaphore_pend(UvisorSemaphore * semaphore, uint32_t timeout_ms);
+
+/* This function is safe to call from interrupt context. */
+int semaphore_post(UvisorSemaphore * semaphore);
+
+#endif
