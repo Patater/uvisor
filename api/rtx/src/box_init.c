@@ -32,6 +32,7 @@ void __uvisor_initialize_rpc_queues(void)
     uvisor_pool_slot_t i;
 
     uvisor_rpc_outgoing_message_queue_t * rpc_outgoing_msg_queue = (uvisor_rpc_outgoing_message_queue_t *) index->rpc_outgoing_message_queue;
+    uvisor_rpc_incoming_message_queue_t * rpc_incoming_msg_queue = (uvisor_rpc_incoming_message_queue_t *) index->rpc_incoming_message_queue;
 
     /* Initialize the outgoing RPC message queue. */
     if (uvisor_pool_queue_init(&rpc_outgoing_msg_queue->queue,
@@ -56,6 +57,15 @@ void __uvisor_initialize_rpc_queues(void)
         if (__uvisor_semaphore_pend(semaphore, 0)) {
             uvisor_error(USER_NOT_ALLOWED);
         }
+    }
+
+    /* Initialize the incoming RPC message queue. */
+    if (uvisor_pool_queue_init(&rpc_incoming_msg_queue->queue,
+                               rpc_incoming_msg_queue->messages,
+                               sizeof(*rpc_incoming_msg_queue->messages),
+                               UVISOR_RPC_INCOMING_MESSAGE_SLOTS,
+                               UVISOR_POOL_QUEUE_NON_BLOCKING)) {
+        uvisor_error(USER_NOT_ALLOWED);
     }
 }
 
