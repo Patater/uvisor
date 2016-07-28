@@ -77,6 +77,7 @@ typedef struct uvisor_rpc_message {
 typedef struct uvisor_rpc_result_obj
 {
     uvisor_rpc_result_t cookie;
+    uvisor_rpc_message_t * msg;
 
     /* The return value from the RPC target function */
     uint32_t value;
