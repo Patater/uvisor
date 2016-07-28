@@ -162,6 +162,7 @@ typedef struct {
     /* Contains total memory used by the output queue (incl. management and pool). */
     uint32_t rpc_outgoing_message_size;
     uint32_t rpc_incoming_message_size;
+    uint32_t rpc_outgoing_result_size;
 } UVISOR_PACKED uvisor_sizes_t;
 
 /* The number of additional bss sections per box bss.
@@ -205,6 +206,7 @@ typedef struct {
             /* Pointer to the outgoing message queue */
             uvisor_pool_queue_t * rpc_outgoing_message_queue;
             uvisor_pool_queue_t * rpc_incoming_message_queue;
+            uvisor_pool_queue_t * rpc_outgoing_result_queue;
         };
     };
     /* Pointer to the box heap */

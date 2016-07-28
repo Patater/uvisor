@@ -33,6 +33,7 @@ void __uvisor_initialize_rpc_queues(void)
 
     uvisor_rpc_outgoing_message_queue_t * rpc_outgoing_msg_queue = (uvisor_rpc_outgoing_message_queue_t *) index->rpc_outgoing_message_queue;
     uvisor_rpc_incoming_message_queue_t * rpc_incoming_msg_queue = (uvisor_rpc_incoming_message_queue_t *) index->rpc_incoming_message_queue;
+    uvisor_rpc_outgoing_result_queue_t * rpc_outgoing_result_queue = (uvisor_rpc_outgoing_result_queue_t *) index->rpc_outgoing_result_queue;
 
     /* Initialize the outgoing RPC message queue. */
     if (uvisor_pool_queue_init(&rpc_outgoing_msg_queue->queue,
@@ -65,6 +66,15 @@ void __uvisor_initialize_rpc_queues(void)
                                sizeof(*rpc_incoming_msg_queue->messages),
                                UVISOR_RPC_INCOMING_MESSAGE_SLOTS,
                                UVISOR_POOL_QUEUE_NON_BLOCKING)) {
+        uvisor_error(USER_NOT_ALLOWED);
+    }
+
+    /* Initialize outgoing result queue */
+    if (uvisor_pool_queue_init(&rpc_outgoing_result_queue->queue,
+                               rpc_outgoing_result_queue->results,
+                               sizeof(*rpc_outgoing_result_queue->results),
+                               UVISOR_RPC_OUTGOING_RESULT_SLOTS,
+                               UVISOR_POOL_QUEUE_BLOCKING)) {
         uvisor_error(USER_NOT_ALLOWED);
     }
 }
