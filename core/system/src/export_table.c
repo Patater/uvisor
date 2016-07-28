@@ -15,7 +15,10 @@
  * limitations under the License.
  */
 #include <uvisor.h>
+#include "semaphore.h"
 #include "api/inc/export_table_exports.h"
+#include "api/inc/pool_queue_exports.h"
+#include "api/inc/rpc_exports.h"
 #include "api/inc/svc_exports.h"
 #include "api/inc/vmpu_exports.h"
 #include "context.h"
@@ -89,10 +92,262 @@ static void thread_destroy(void * c)
     }
 }
 
+static uvisor_pool_t * fn_group_pool(void)
+{
+    UvisorBoxIndex * index = (UvisorBoxIndex *) *(__uvisor_config.uvisor_box_context);
+    return index->rpc_fn_group_pool;
+}
+
+static uvisor_rpc_fn_group_t * fn_group_array(void)
+{
+    return (uvisor_rpc_fn_group_t *) fn_group_pool()->array;
+}
+
+/* Wake up all the potential handlers for this RPC target. */
+static void wake_up_handlers_for_target(const TFN_Ptr function)
+{
+    /* TODO Use unpriv reads and writes */
+
+    /* Wake up all known waiters for this function. Search for the function in
+     * all known function groups. We have to search through all function groups
+     * (not just those currently waiting for messages) because we want the RTOS
+     * to be able to pick the highest priority waiter to schedule to run. Some
+     * waiters will wake up and find they have nothing to do if a higher
+     * priority waiter already took care of handling the incoming RPC. */
+    uvisor_pool_slot_t i;
+    for (i = 0; i < fn_group_pool()->num; i++) {
+        /* If the entry in the pool is allocated: */
+        if (fn_group_pool()->management_array[i].dequeued.state != UVISOR_POOL_SLOT_IS_FREE) {
+            /* Look for the function in this function group. */
+            uvisor_rpc_fn_group_t * fn_group = &fn_group_array()[i];
+            TFN_Ptr const * fn_ptr_array = fn_group->fn_ptr_array;
+            uvisor_pool_slot_t j;
+
+            for (j = 0; j < fn_group->fn_count; j++) {
+                /* If function is found: */
+                if (fn_ptr_array[j] == function) {
+                    /* Wake up the waiter. */
+                    semaphore_post(&fn_group->semaphore);
+                }
+            }
+        }
+    }
+}
+
+static void drain_message_queue(void)
+{
+    /* XXX This implementation is dumb and simple and slow and not secure. */
+
+    UvisorBoxIndex * index = (UvisorBoxIndex *) *__uvisor_config.uvisor_box_context;
+    uvisor_pool_queue_t * source_queue = index->rpc_outgoing_message_queue;
+    uvisor_rpc_message_t * source_array = (uvisor_rpc_message_t *) source_queue->pool.array;
+    int source_box = g_active_box;
+
+    /* For each message in the queue: */
+    do {
+        uvisor_rpc_message_t uvisor_msg;
+        uvisor_pool_slot_t source_slot;
+
+        /* NOTE: We only dequeue the message from the queue. We don't free
+         * the message from the pool. The caller will free the message from the
+         * pool after finish waiting for the RPC to finish. */
+        source_slot = uvisor_pool_queue_try_dequeue_first(source_queue);
+        if (source_slot >= source_queue->pool.num) {
+            /* The queue is empty or busy. */
+            break;
+        }
+
+        uvisor_rpc_message_t * msg = &source_array[source_slot];
+
+        /* Copy the message. FIXME use unpriv copying */
+        memcpy(&uvisor_msg, msg, sizeof(uvisor_msg));
+
+        /* Set the ID of the calling box in the message. */
+        uvisor_msg.source_box = source_box;
+
+        /* Look up the destination box. */
+        /* XXX Assume destination box is 1 for now. :p */
+        static const int destination_box = 1;
+
+        /* Switch to the destination box if the thread is in a different
+         * process than we are currently in. */
+        if (destination_box != source_box) {
+            context_switch_in(CONTEXT_SWITCH_UNBOUND_THREAD, destination_box, 0, 0);
+        }
+        UvisorBoxIndex * dest_index = (UvisorBoxIndex *) *__uvisor_config.uvisor_box_context;
+        uvisor_pool_queue_t * dest_queue = dest_index->rpc_incoming_message_queue;
+        uvisor_rpc_message_t * dest_array = (uvisor_rpc_message_t *) dest_queue->pool.array;
+
+        /* Place the message into the destination box queue. */
+        uvisor_pool_slot_t dest_slot = uvisor_pool_queue_try_allocate(dest_queue);
+
+        /* If the queue is not busy and there is space in the destination queue: */
+        if (dest_slot < dest_queue->pool.num)
+        {
+            int status;
+            uvisor_rpc_message_t * dest_msg = &dest_array[dest_slot];
+
+            /* Copy the message to the destination. FIXME use unpriv copying */
+            memcpy(dest_msg, &uvisor_msg, sizeof(*dest_msg));
+
+            /* Enqueue the message */
+            status = uvisor_pool_queue_try_enqueue(dest_queue, dest_slot);
+            /* We should always be able to enqueue, since we were able to
+             * allocate the slot. Nobody else should have been able to run and
+             * take the spin lock. */
+            if (status) {
+                /* XXX It is bad to take down the entire system. It is also bad
+                 * to keep the allocated slot around. However, if we couldn't
+                 * enqueue the slot, we'll have a hard time freeing it, since
+                 * that requires the same lock. */
+                HALT_ERROR(SANITY_CHECK_FAILED, "We were able to get the destination RPC slot allocated, but couldn't enqueue the message.");
+            }
+
+            /* Poke anybody waiting on calls to this target function. */
+            wake_up_handlers_for_target(uvisor_msg.function);
+        }
+
+        /* Switch back to the source box if the thread is in a different
+         * process than we are currently in. We do this here for two reasons.
+         *   1. We may need to put the message back into the source queue. We
+         *      should put it back in source box context.
+         *   2. We will read the next message in the source queue soon (on next
+         *      loop iteration). We should read the next message from source box
+         *      context. */
+        if (destination_box != source_box) {
+            context_switch_in(CONTEXT_SWITCH_UNBOUND_THREAD, source_box, 0, 0);
+        }
+
+        /* If there was no room in the destination queue: */
+        if (dest_slot >= dest_queue->pool.num)
+        {
+            /* Put the message back into the source queue. This applies
+             * backpressure on the caller when the callee is too busy. Note
+             * that no data needs to be copied; only the source queue's
+             * management array is modified. */
+            int status = uvisor_pool_queue_try_enqueue(source_queue, source_slot);
+            if (status) {
+                /* XXX It is bad to take down the entire system. It is also bad
+                 * to lose messages due to not being able to put them back in
+                 * the queue. However, if we could dequeue the slot
+                 * we should have no trouble enqueuing the slot here. */
+                HALT_ERROR(SANITY_CHECK_FAILED, "We were able to dequeue an RPC message, but weren't able to put the message back.");
+            }
+
+            /* XXX Note that we don't have to modify data here of the message
+             * in the source queue, since it'll still be valid. Nobody else
+             * will have run at the same time that could mess it up... */
+
+            /* Stop looping, because the system needs to continue running to
+             * the destination messages can get processed to free up more room.
+             * */
+            break;
+        }
+    } while (1);
+}
+
+static void drain_result_queue(void)
+{
+    /* XXX This implementation is dumb and simple and slow and not secure. */
+
+    UvisorBoxIndex * index = (UvisorBoxIndex *) *__uvisor_config.uvisor_box_context;
+    uvisor_pool_queue_t * source_queue = index->rpc_outgoing_result_queue;
+    uvisor_rpc_result_obj_t * source_array = (uvisor_rpc_result_obj_t *) source_queue->pool.array;
+
+    int source_box = g_active_box;
+
+    /* For each message in the queue: */
+    do {
+        uvisor_rpc_result_obj_t uvisor_result;
+        uvisor_pool_slot_t source_slot;
+
+        /* Dequeue the first result message from the queue. */
+        source_slot = uvisor_pool_queue_try_dequeue_first(source_queue);
+        if (source_slot >= source_queue->pool.num) {
+            /* The queue is empty or busy. */
+            break;
+        }
+
+        uvisor_rpc_result_obj_t * result = &source_array[source_slot];
+
+        /* Copy the message. FIXME use unpriv copying */
+        memcpy(&uvisor_result, result, sizeof(uvisor_result));
+
+        /* Now that we've copied the message, we can free it from the source
+         * queue. The callee (the one sending result messages) doesn't care
+         * about the message after they post it to their outgoing result queue.
+         * */
+        source_slot = uvisor_pool_queue_try_free(source_queue, source_slot);
+        if (source_slot >= source_queue->pool.num) {
+            /* The queue is empty or busy. This should never happen. */
+            /* XXX It is bad to take down the entire system. It is also bad to
+             * never free slots in the outgoing result queue. However, if we
+             * could dequeue the slot we should have no trouble freeing the
+             * slot here. */
+            HALT_ERROR(SANITY_CHECK_FAILED, "We were able to dequeue a result message, but weren't able to free the result message.");
+            break;
+        }
+
+        /* Look up the origin message. This should have been remembered
+         * by uVisor when it did the initial delivery. */
+        /* XXX For now, trust whatever the RPC callee says... This is not secure.
+         * */
+        uvisor_pool_slot_t dest_slot = uvisor_result.msg_slot; /* XXX NOT SECURE */
+
+        /* Based on the origin message, look up the destination box. */
+        /* XXX Assume destination box is 0 for now. :p */
+        static const int destination_box = 0;
+
+        /* Switch to the destination box if the thread is in a different
+         * process than we are currently in. */
+        if (destination_box != source_box) {
+            context_switch_in(CONTEXT_SWITCH_UNBOUND_THREAD, destination_box, 0, 0);
+        }
+        UvisorBoxIndex * dest_index = (UvisorBoxIndex *) *__uvisor_config.uvisor_box_context;
+        uvisor_pool_queue_t * dest_queue = dest_index->rpc_outgoing_message_queue;
+        uvisor_rpc_message_t * dest_array = (uvisor_rpc_message_t *) dest_queue->pool.array;
+
+        /* Place the message into the destination box queue. */
+        uvisor_rpc_message_t * dest_msg = &dest_array[dest_slot];
+
+        /* Write the result value to the destination. FIXME use unpriv writing */
+        dest_msg->result = uvisor_result.value;
+
+        /* Post to the result semaphore, TODO ignoring errors. */
+        int status;
+        status = semaphore_post(&dest_msg->semaphore);
+        if (status) {
+            /* XXX The semaphore was bad. We shouldn't really bring down the entire
+             * system if one box messes up its own semaphore. In a
+             * non-malicious system, this should never happen. */
+            HALT_ERROR(SANITY_CHECK_FAILED, "We couldn't semaphore.");
+        }
+
+        /* Switch back to the source box if the thread is in a different
+         * process than we are currently in. We do this here for one reason.
+         *   1. We will read the next message in the source queue soon (on next
+         *      loop iteration). We should read the next message from source box
+         *      context. */
+        if (destination_box != source_box) {
+            context_switch_in(CONTEXT_SWITCH_UNBOUND_THREAD, source_box, 0, 0);
+        }
+    } while (1);
+}
+
+static void drain_outgoing_rpc_queues(void)
+{
+    drain_message_queue();
+    drain_result_queue();
+}
+
 static void thread_switch(void * c)
 {
     UvisorThreadContext * context = c;
     UvisorBoxIndex * index;
+
+    /* Drain any outgoing RPC queues */
+    drain_outgoing_rpc_queues();
+
     if (context == NULL) {
         return;
     }
