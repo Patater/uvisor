@@ -45,9 +45,25 @@ typedef struct uvisor_rpc_message {
     uvisor_pool_slot_t msg_slot;
 } uvisor_rpc_message_t;
 
+/* uvisor_rpc_result_t is just a slot number into a pool of result objects.
+ * This is the result object, the real business thing.
+ * This is only used for outgoing rpc results. */
+typedef struct uvisor_rpc_result_obj
+{
+    /* `msg_slot` identifies to uVisor which RPC it should complete. uVisor
+     * must verify this information of course, to see if this box is currently
+     * being called into and is allowed to complete the RPC. */
+    uvisor_pool_slot_t msg_slot;
+
+    /* The return value from the RPC target function */
+    uint32_t value;
+} uvisor_rpc_result_obj_t;
+
 #define UVISOR_RPC_OUTGOING_MESSAGE_SLOTS (4)
 
 #define UVISOR_RPC_INCOMING_MESSAGE_SLOTS (4)
+#define UVISOR_RPC_OUTGOING_RESULT_SLOTS (4)
+
 
 #define UVISOR_RPC_OUTGOING_MESSAGE_TYPE(slots) \
     struct { \
@@ -61,7 +77,15 @@ typedef struct uvisor_rpc_message {
 #define UVISOR_RPC_INCOMING_MESSAGE_TYPE(slots) \
     UVISOR_RPC_OUTGOING_MESSAGE_TYPE(slots)
 
+#define UVISOR_RPC_OUTGOING_RESULT_TYPE(slots) \
+    struct { \
+        uvisor_pool_queue_t queue; \
+        uvisor_pool_queue_entry_t entries[slots]; \
+        uvisor_rpc_result_obj_t results[slots]; \
+    }
+
 typedef UVISOR_RPC_OUTGOING_MESSAGE_TYPE(UVISOR_RPC_OUTGOING_MESSAGE_SLOTS) uvisor_rpc_outgoing_message_queue_t;
 typedef UVISOR_RPC_INCOMING_MESSAGE_TYPE(UVISOR_RPC_INCOMING_MESSAGE_SLOTS) uvisor_rpc_incoming_message_queue_t;
+typedef UVISOR_RPC_OUTGOING_RESULT_TYPE(UVISOR_RPC_OUTGOING_RESULT_SLOTS) uvisor_rpc_outgoing_result_queue_t;
 
 #endif
