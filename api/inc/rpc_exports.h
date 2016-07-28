@@ -47,6 +47,8 @@ typedef struct uvisor_rpc_message {
 
 #define UVISOR_RPC_OUTGOING_MESSAGE_SLOTS (4)
 
+#define UVISOR_RPC_INCOMING_MESSAGE_SLOTS (4)
+
 #define UVISOR_RPC_OUTGOING_MESSAGE_TYPE(slots) \
     struct { \
         uvisor_pool_queue_t queue; \
@@ -54,6 +56,12 @@ typedef struct uvisor_rpc_message {
         uvisor_rpc_message_t messages[slots]; \
     }
 
+/* XXX: For now the incoming is of the same type as outgoing,
+ * even though we don't need the semaphore and result memory. */
+#define UVISOR_RPC_INCOMING_MESSAGE_TYPE(slots) \
+    UVISOR_RPC_OUTGOING_MESSAGE_TYPE(slots)
+
 typedef UVISOR_RPC_OUTGOING_MESSAGE_TYPE(UVISOR_RPC_OUTGOING_MESSAGE_SLOTS) uvisor_rpc_outgoing_message_queue_t;
+typedef UVISOR_RPC_INCOMING_MESSAGE_TYPE(UVISOR_RPC_INCOMING_MESSAGE_SLOTS) uvisor_rpc_incoming_message_queue_t;
 
 #endif
