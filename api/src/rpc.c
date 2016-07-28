@@ -352,6 +352,7 @@ int rpc_fncall_waitfor(const TFN_Ptr fn_ptr_array[], size_t fn_count, uint32_t t
     thread_context()->box_id_caller = msg->source_box;
 
     /* Dispatch the RPC. */
+    result->msg = msg;
     result->cookie = msg->cookie;
     result->value = msg->function(msg->p0, msg->p1, msg->p2, msg->p3);
 
