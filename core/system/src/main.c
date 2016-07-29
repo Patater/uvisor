@@ -170,6 +170,7 @@ void main_entry(void)
         /* finish initialization */
         uvisor_init_post();
 
+#if 0
 #ifndef NDEBUG
         /* Run internal unit tests */
         extern void uvisor_pool_queue_test(void);
@@ -177,6 +178,7 @@ void main_entry(void)
 
         extern void uvisor_pool_test(void);
         uvisor_pool_test();
+#endif
 #endif
 
         /* switch to unprivileged mode; this is possible as uvisor code is
