@@ -107,7 +107,6 @@ SOURCES:=\
          $(CORE_SYSTEM_DIR)/src/page_allocator.c \
          $(CORE_SYSTEM_DIR)/src/page_allocator_faults.c \
          $(CORE_SYSTEM_DIR)/src/pool_queue.c \
-         $(CORE_SYSTEM_DIR)/src/pool_queue_test.c \
          $(CORE_SYSTEM_DIR)/src/register_gateway.c \
          $(CORE_SYSTEM_DIR)/src/stdlib.c \
          $(CORE_SYSTEM_DIR)/src/svc.c \
@@ -121,6 +120,7 @@ SOURCES:=\
          $(CORE_LIB_DIR)/printf/tfp_printf.c \
          $(MPU_SRC) \
          $(PLATFORM_SRC)
+         #$(CORE_SYSTEM_DIR)/src/pool_queue_test.c
 
 # Core object files
 OBJS:=$(foreach SOURCE, $(SOURCES), $(CONFIGURATION_PREFIX)/$(CORE_DIR)/$(notdir $(SOURCE:.c=.o)))
