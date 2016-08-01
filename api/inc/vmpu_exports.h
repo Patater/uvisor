@@ -163,6 +163,7 @@ typedef struct {
     uint32_t rpc_outgoing_message_size;
     uint32_t rpc_incoming_message_size;
     uint32_t rpc_outgoing_result_size;
+    uint32_t rpc_fn_group_size;
 } UVISOR_PACKED uvisor_sizes_t;
 
 /* The number of additional bss sections per box bss.
@@ -207,6 +208,7 @@ typedef struct {
             uvisor_pool_queue_t * rpc_outgoing_message_queue;
             uvisor_pool_queue_t * rpc_incoming_message_queue;
             uvisor_pool_queue_t * rpc_outgoing_result_queue;
+            uvisor_pool_t * rpc_fn_group_pool;
         };
     };
     /* Pointer to the box heap */

@@ -34,6 +34,7 @@ void __uvisor_initialize_rpc_queues(void)
     uvisor_rpc_outgoing_message_queue_t * rpc_outgoing_msg_queue = (uvisor_rpc_outgoing_message_queue_t *) index->rpc_outgoing_message_queue;
     uvisor_rpc_incoming_message_queue_t * rpc_incoming_msg_queue = (uvisor_rpc_incoming_message_queue_t *) index->rpc_incoming_message_queue;
     uvisor_rpc_outgoing_result_queue_t * rpc_outgoing_result_queue = (uvisor_rpc_outgoing_result_queue_t *) index->rpc_outgoing_result_queue;
+    uvisor_rpc_fn_group_pool_t * rpc_fn_group_pool = (uvisor_rpc_fn_group_pool_t *) index->rpc_fn_group_pool;
 
     /* Initialize the outgoing RPC message queue. */
     if (uvisor_pool_queue_init(&rpc_outgoing_msg_queue->queue,
@@ -76,6 +77,31 @@ void __uvisor_initialize_rpc_queues(void)
                                UVISOR_RPC_OUTGOING_RESULT_SLOTS,
                                UVISOR_POOL_QUEUE_BLOCKING)) {
         uvisor_error(USER_NOT_ALLOWED);
+    }
+
+    /* Initialize fn_group pool */
+    if (uvisor_pool_init(&rpc_fn_group_pool->pool,
+                         rpc_fn_group_pool->fn_groups,
+                         sizeof(*rpc_fn_group_pool->fn_groups),
+                         UVISOR_RPC_FN_GROUP_SLOTS,
+                         UVISOR_POOL_QUEUE_BLOCKING)) {
+        uvisor_error(USER_NOT_ALLOWED);
+    }
+
+    /* Initialize all the fn_group semaphores. */
+    for (i = 0; i < UVISOR_RPC_FN_GROUP_SLOTS; i++) {
+        uvisor_semaphore_t * semaphore = &rpc_fn_group_pool->fn_groups[i].semaphore;
+        if (uvisor_semaphore_init(semaphore, 1)) {
+            uvisor_error(USER_NOT_ALLOWED);
+        }
+
+        /* Semaphores are created with their value initialized to count. We
+         * want the semaphore to start at zero. Decrement the semaphore, so it
+         * starts with a value of zero. This will allow the first pend to
+         * block. */
+        if (uvisor_semaphore_pend(semaphore, 0)) {
+            uvisor_error(USER_NOT_ALLOWED);
+        }
     }
 }
 
