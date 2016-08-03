@@ -355,5 +355,11 @@ const TUvisorExportTable __uvisor_export_table = {
         .thread_destroy = thread_destroy,
         .thread_switch = thread_switch,
     },
+    .spinlock = {
+        .init = uvisor_spin_init,
+        .trylock = uvisor_spin_trylock,
+        .lock = uvisor_spin_lock,
+        .unlock = uvisor_spin_unlock,
+    },
     .size = sizeof(TUvisorExportTable)
 };

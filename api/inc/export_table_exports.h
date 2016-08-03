@@ -18,6 +18,7 @@
 #define __UVISOR_API_EXPORT_TABLE_EXPORTS_H__
 
 #include "rt_OsEventObserver.h"
+#include "api/inc/uvisor_spinlock_exports.h"
 #include <stdint.h>
 
 /* If this magic doesn't match what you get in a TUvisorExportTable, then you
@@ -38,6 +39,8 @@ typedef struct {
     uint32_t version;
 
     OsEventObserver os_event_observer;
+
+    UvisorSpinlockTable spinlock;
 
     /* This must be the last element of the table so that uvisor-input.S can
      * export the size statically. */
