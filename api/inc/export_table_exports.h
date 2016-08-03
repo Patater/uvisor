@@ -19,6 +19,7 @@
 
 #include "rt_OsEventObserver.h"
 #include "api/inc/uvisor_spinlock_exports.h"
+#include "api/inc/pool_queue_exports.h"
 #include <stdint.h>
 
 /* If this magic doesn't match what you get in a TUvisorExportTable, then you
@@ -41,6 +42,8 @@ typedef struct {
     OsEventObserver os_event_observer;
 
     UvisorSpinlockTable spinlock;
+
+    UvisorPoolQueueTable pool_queue;
 
     /* This must be the last element of the table so that uvisor-input.S can
      * export the size statically. */
