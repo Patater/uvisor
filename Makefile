@@ -114,6 +114,7 @@ SOURCES:=\
          $(CORE_SYSTEM_DIR)/src/unvic.c \
          $(CORE_SYSTEM_DIR)/src/uvisor_mutex.c \
          $(CORE_SYSTEM_DIR)/src/uvisor_semaphore.c \
+         $(CORE_SYSTEM_DIR)/src/uvisor_spinlock.c \
          $(CORE_SYSTEM_DIR)/src/mpu/vmpu.c \
          $(CORE_DEBUG_DIR)/src/debug.c \
          $(CORE_DEBUG_DIR)/src/memory_map.c \
