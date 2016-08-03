@@ -145,5 +145,15 @@ const TUvisorExportTable __uvisor_export_table = {
         .thread_destroy = thread_destroy,
         .thread_switch = thread_switch,
     },
+    .pool_queue = {
+        .pool_init = uvisor_pool_init,
+        .pool_queue_init = uvisor_pool_queue_init,
+        .pool_allocate = uvisor_pool_allocate,
+        .pool_queue_enqueue = uvisor_pool_queue_enqueue,
+        .pool_free = uvisor_pool_free,
+        .pool_queue_dequeue = uvisor_pool_queue_dequeue,
+        .pool_queue_dequeue_first = uvisor_pool_queue_dequeue_first,
+        .pool_queue_find_first = uvisor_pool_queue_find_first,
+    },
     .size = sizeof(TUvisorExportTable)
 };

@@ -52,6 +52,8 @@ typedef struct uvisor_pool_queue_entry {
     };
 } uvisor_pool_queue_entry_t;
 
+/* These are assumed to only be statically allocated, so the management array
+ * in in-place. */
 typedef struct uvisor_pool {
     /* The array holds slots of data. */
     void const * array;
@@ -87,8 +89,6 @@ typedef struct uvisor_pool {
     uvisor_pool_queue_entry_t management_array[];
 } uvisor_pool_t;
 
-/* These are assumed to only be statically allocated, so the management array
- * in in-place. */
 typedef struct uvisor_pool_queue {
     /* The first allocated slot */
     uvisor_pool_slot_t head;
@@ -96,10 +96,7 @@ typedef struct uvisor_pool_queue {
     /* The last allocated slot */
     uvisor_pool_slot_t tail;
 
-    /* This must be at the end so we can allocate memory for queues by
-     * allocating enough room for the size of the queue appended by an array of
-     * entries. */
-    uvisor_pool_t pool;
+    uvisor_pool_t * pool;
 } uvisor_pool_queue_t;
 
 /* Intialize a pool.
@@ -108,7 +105,7 @@ UVISOR_EXTERN int uvisor_pool_init(uvisor_pool_t * pool, void * array, size_t st
 
 /* Initialize a pool queue.
  * Return 0 on success, non-zero otherwise. */
-UVISOR_EXTERN int uvisor_pool_queue_init(uvisor_pool_queue_t * pool_queue, void * array, size_t stride, size_t num, int blocking);
+UVISOR_EXTERN int uvisor_pool_queue_init(uvisor_pool_queue_t * pool_queue, uvisor_pool_t * pool, void * array, size_t stride, size_t num, int blocking);
 
 /* Allocate a slot from the pool. If the pool has no more slots available,
  * block up to the specified length of time in milliseconds. No blocking will
@@ -160,12 +157,12 @@ UVISOR_EXTERN uvisor_pool_slot_t uvisor_pool_queue_find_first(uvisor_pool_queue_
  * queue, or even realize pool_queue is implemented with a pool) */
 static inline uvisor_pool_slot_t uvisor_pool_queue_allocate(uvisor_pool_queue_t * pool_queue, uint32_t timeout_ms)
 {
-    return uvisor_pool_allocate(&pool_queue->pool, timeout_ms);
+    return uvisor_pool_allocate(pool_queue->pool, timeout_ms);
 }
 
 static inline uvisor_pool_slot_t uvisor_pool_queue_try_allocate(uvisor_pool_queue_t * pool_queue)
 {
-    return uvisor_pool_try_allocate(&pool_queue->pool);
+    return uvisor_pool_try_allocate(pool_queue->pool);
 }
 
 /* Inline helper function to make freeing slots for pool queues easier and
@@ -173,12 +170,12 @@ static inline uvisor_pool_slot_t uvisor_pool_queue_try_allocate(uvisor_pool_queu
  * queue, or even realize pool_queue is implemented with a pool) */
 static inline uvisor_pool_slot_t uvisor_pool_queue_free(uvisor_pool_queue_t * pool_queue, uvisor_pool_slot_t slot)
 {
-    return uvisor_pool_free(&pool_queue->pool, slot);
+    return uvisor_pool_free(pool_queue->pool, slot);
 }
 
 static inline uvisor_pool_slot_t uvisor_pool_queue_try_free(uvisor_pool_queue_t * pool_queue, uvisor_pool_slot_t slot)
 {
-    return uvisor_pool_try_free(&pool_queue->pool, slot);
+    return uvisor_pool_try_free(pool_queue->pool, slot);
 }
 
 /* Return a pointer to the specified slot within the pool. */
@@ -189,5 +186,16 @@ static inline void * uvisor_pool_pointer_to(uvisor_pool_t * pool, uvisor_pool_sl
     }
     return (uint8_t *) pool->array + pool->stride * slot;
 }
+
+typedef struct {
+    int (*pool_init)(uvisor_pool_t *, void *, size_t, size_t, int);
+    int (*pool_queue_init)(uvisor_pool_queue_t *, uvisor_pool_t *, void *, size_t, size_t, int);
+    uvisor_pool_slot_t (*pool_allocate)(uvisor_pool_t *, uint32_t);
+    void (*pool_queue_enqueue)(uvisor_pool_queue_t *, uvisor_pool_slot_t);
+    uvisor_pool_slot_t (*pool_free)(uvisor_pool_t *, uvisor_pool_slot_t);
+    uvisor_pool_slot_t (*pool_queue_dequeue)(uvisor_pool_queue_t *, uvisor_pool_slot_t);
+    uvisor_pool_slot_t (*pool_queue_dequeue_first)(uvisor_pool_queue_t *);
+    uvisor_pool_slot_t (*pool_queue_find_first)(uvisor_pool_queue_t *, TQueryFN_Ptr, void *);
+} UvisorPoolQueueTable;
 
 #endif
