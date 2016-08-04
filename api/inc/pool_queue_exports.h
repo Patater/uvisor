@@ -18,8 +18,8 @@
 #define UVISOR_POOL_QUEUE_EXPORTS_H
 
 #include "api/inc/uvisor_exports.h"
-#include "api/inc/uvisor_mutex_exports.h"
 #include "api/inc/uvisor_semaphore_exports.h"
+#include "api/inc/uvisor_spinlock_exports.h"
 #include <stdint.h>
 #include <stddef.h>
 
@@ -78,8 +78,8 @@ typedef struct uvisor_pool {
     /* The semaphore is used to block allocations when the pool is full. */
     uvisor_semaphore_t semaphore;
 
-    /* The mutex serializes updates to the management array. */
-    uvisor_mutex_t mutex;
+    /* The spinlock serializes updates to the management array. */
+    UvisorSpinlock spinlock;
 
     /* This must be at the end so we can allocate memory for pools by
      * allocating enough room for the size of the pool appended by an array of
@@ -115,8 +115,12 @@ UVISOR_EXTERN int uvisor_pool_queue_init(uvisor_pool_queue_t * pool_queue, void 
  * occur if the timeout is zero or the pool was initialized as non-blocking.
  * This doesn't put anything in the slot for you. It's up to you to do that.
  * Return the index of the allocated slot, or UVISOR_POOL_SLOT_INVALID if
- * timed out waiting for an available slot. */
+ * timed out waiting for an available slot. This function will spin until the
+ * spin lock serializing access to the pool can be taken. */
 UVISOR_EXTERN uvisor_pool_slot_t uvisor_pool_allocate(uvisor_pool_t * pool, uint32_t timeout_ms);
+/* Attempt to allocate a slot. This function will fail if the spin lock
+ * serializing access to the pool can not be taken. */
+UVISOR_EXTERN uvisor_pool_slot_t uvisor_pool_try_allocate(uvisor_pool_t * pool);
 
 /* Enqueue the specified slot into the queue. */
 UVISOR_EXTERN void uvisor_pool_queue_enqueue(uvisor_pool_queue_t * pool_queue, uvisor_pool_slot_t slot);
