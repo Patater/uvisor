@@ -132,6 +132,7 @@ UVISOR_EXTERN int uvisor_pool_queue_try_enqueue(uvisor_pool_queue_t * pool_queue
  * free is outside the range of the queue. XXX Reconsider the return value
  * here. Maybe it'd be best to return INVALID here in both cases. */
 UVISOR_EXTERN uvisor_pool_slot_t uvisor_pool_free(uvisor_pool_t * pool, uvisor_pool_slot_t slot);
+UVISOR_EXTERN uvisor_pool_slot_t uvisor_pool_try_free(uvisor_pool_t * pool, uvisor_pool_slot_t slot);
 
 /* Remove the specified slot from the queue. This function does not free the
  * specified slot back into the pool. Return the slot that was dequeued, or
@@ -169,6 +170,11 @@ static inline uvisor_pool_slot_t uvisor_pool_queue_allocate(uvisor_pool_queue_t 
 static inline uvisor_pool_slot_t uvisor_pool_queue_free(uvisor_pool_queue_t * pool_queue, uvisor_pool_slot_t slot)
 {
     return uvisor_pool_free(&pool_queue->pool, slot);
+}
+
+static inline uvisor_pool_slot_t uvisor_pool_queue_try_free(uvisor_pool_queue_t * pool_queue, uvisor_pool_slot_t slot)
+{
+    return uvisor_pool_try_free(&pool_queue->pool, slot);
 }
 
 /* Return a pointer to the specified slot within the pool. */
