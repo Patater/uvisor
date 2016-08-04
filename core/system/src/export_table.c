@@ -151,9 +151,9 @@ static void drain_message_queue(void)
         /* NOTE: We only dequeue the message from the queue. We don't free
          * the message from the pool. The caller will free the message from the
          * pool after finish waiting for the RPC to finish. */
-        source_slot = uvisor_pool_queue_dequeue_first(source_queue);
+        source_slot = uvisor_pool_queue_try_dequeue_first(source_queue);
         if (source_slot >= source_queue->pool.num) {
-            /* The queue is empty. */
+            /* The queue is empty or busy. */
             break;
         }
 
@@ -180,18 +180,29 @@ static void drain_message_queue(void)
 
         /* Place the message into the destination box queue. */
         static const uint32_t timeout_ms = 0; /* Don't wait for space in the destination queue. */
-        uvisor_pool_slot_t dest_slot = uvisor_pool_queue_allocate(dest_queue, timeout_ms);
+        uvisor_pool_slot_t dest_slot = uvisor_pool_queue_try_allocate(dest_queue, timeout_ms);
 
         /* If there is space in the destination queue: */
         if (dest_slot < dest_queue->pool.num)
         {
+            int status;
             uvisor_rpc_message_t * dest_msg = &dest_array[dest_slot];
 
             /* Copy the message to the destination. FIXME use unpriv copying */
             memcpy(dest_msg, &uvisor_msg, sizeof(*dest_msg));
 
             /* Enqueue the message */
-            uvisor_pool_queue_enqueue(dest_queue, dest_slot);
+            status = uvisor_pool_queue_try_enqueue(dest_queue, dest_slot);
+            /* We should always be able to enqueue, since we were able to
+             * allocate the slot. Nobody else should have been able to run and
+             * take the spin lock. */
+            if (status) {
+                /* XXX It is bad to take down the entire system. It is also bad
+                 * to keep the allocated slot around. However, if we couldn't
+                 * enqueue the slot, we'll have a hard time freeing it, since
+                 * that requires the same lock. */
+                HALT_ERROR("We were able to get the destination RPC slot allocated, but couldn't enqueue the message.");
+            }
 
             /* Poke anybody waiting on calls to this target function. */
             wake_up_handlers_for_target(uvisor_msg.function);
@@ -215,7 +226,14 @@ static void drain_message_queue(void)
              * backpressure on the caller when the callee is too busy. Note
              * that no data needs to be copied; only the source queue's
              * management array is modified. */
-            uvisor_pool_queue_enqueue(source_queue, source_slot);
+            int status = uvisor_pool_queue_try_enqueue(source_queue, source_slot);
+            if (status) {
+                /* XXX It is bad to take down the entire system. It is also bad
+                 * to lose messages due to not being able to put them back in
+                 * the queue. However, if we could dequeue the slot
+                 * we should have no trouble enqueuing the slot here. */
+                HALT_ERROR("We were able to get the dequeue an RPC message, but weren't able to put the message back.");
+            }
         }
     } while (1);
 }
@@ -238,10 +256,10 @@ static void drain_result_queue(void)
         /* NOTE: We both dequeue and free the message from the queue. The
          * callee (the one sending result messages) doesn't care about the
          * message after they post it to their outgoing result queue. */
-        source_slot = uvisor_pool_queue_dequeue_first(source_queue);
-        source_slot = uvisor_pool_queue_free(source_queue, source_slot);
+        source_slot = uvisor_pool_queue_try_dequeue_first(source_queue);
+        source_slot = uvisor_pool_queue_try_free(source_queue, source_slot);
         if (source_slot >= source_queue->pool.num) {
-            /* The queue is empty. */
+            /* The queue is empty or busy. */
             break;
         }
 
