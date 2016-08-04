@@ -90,8 +90,8 @@ void __uvisor_initialize_rpc_queues(void)
 
     /* Initialize all the fn_group semaphores. */
     for (i = 0; i < UVISOR_RPC_FN_GROUP_SLOTS; i++) {
-        uvisor_semaphore_t * semaphore = &rpc_fn_group_pool->fn_groups[i].semaphore;
-        if (uvisor_semaphore_init(semaphore, 1)) {
+        UvisorSemaphore * semaphore = &rpc_fn_group_pool->fn_groups[i].semaphore;
+        if (__uvisor_semaphore_init(semaphore, 1)) {
             uvisor_error(USER_NOT_ALLOWED);
         }
 
@@ -99,7 +99,7 @@ void __uvisor_initialize_rpc_queues(void)
          * want the semaphore to start at zero. Decrement the semaphore, so it
          * starts with a value of zero. This will allow the first pend to
          * block. */
-        if (uvisor_semaphore_pend(semaphore, 0)) {
+        if (__uvisor_semaphore_pend(semaphore, 0)) {
             uvisor_error(USER_NOT_ALLOWED);
         }
     }
