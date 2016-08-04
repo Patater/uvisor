@@ -18,6 +18,7 @@
 #define __LINKER_H__
 
 #include "api/inc/priv_sys_hook_exports.h"
+#include "api/inc/lib_hook_exports.h"
 
 extern uint32_t const __code_end__;
 extern uint32_t const __stack_start__;
