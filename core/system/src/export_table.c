@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 #include <uvisor.h>
+#include "semaphore.h"
 #include "api/inc/export_table_exports.h"
 #include "api/inc/pool_queue_exports.h"
 #include "api/inc/rpc_exports.h"
 #include "api/inc/svc_exports.h"
-#include "api/inc/uvisor_semaphore_exports.h"
 #include "api/inc/vmpu_exports.h"
 #include "context.h"
 #include "halt.h"
@@ -127,7 +127,7 @@ static void wake_up_handlers_for_target(const TFN_Ptr function)
                 /* If function is found: */
                 if (fn_ptr_array[j] == function) {
                     /* Wake up the waiter. */
-                    uvisor_semaphore_post(&fn_group->semaphore);
+                    semaphore_post(&fn_group->semaphore);
                 }
             }
         }
@@ -293,7 +293,7 @@ static void drain_result_queue(void)
         dest_msg->result = uvisor_result.value;
 
         /* Post to the result semaphore */
-        uvisor_semaphore_post(&dest_msg->semaphore);
+        semaphore_post(&dest_msg->semaphore);
 
         /* Switch back to the source box if the thread is in a different
          * process than we are currently in. We do this here for one reason.
