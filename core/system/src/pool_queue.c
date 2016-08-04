@@ -33,7 +33,7 @@ int uvisor_pool_init(uvisor_pool_t * pool, void * array, size_t stride, size_t n
     }
     pool->management_array[num - 1].dequeued.next = UVISOR_POOL_SLOT_INVALID;
 
-    uvisor_mutex_init(&pool->mutex);
+    uvisor_spin_init(&pool->spinlock);
 
     if (pool->blocking) {
         uvisor_semaphore_init(&pool->semaphore, num);
@@ -109,20 +109,44 @@ uvisor_pool_slot_t uvisor_pool_allocate(uvisor_pool_t * pool, uint32_t timeout_m
         }
     }
 
-    uvisor_mutex_acquire(&pool->mutex, UVISOR_WAIT_FOREVER);
+    /* uvisor should try lock. users should wait forever... */
+    uvisor_spin_lock(&pool->spinlock);
     uvisor_pool_slot_t fresh = pool_alloc(pool);
-    uvisor_mutex_release(&pool->mutex);
+    uvisor_spin_unlock(&pool->spinlock);
+
+    return fresh;
+}
+
+uvisor_pool_slot_t uvisor_pool_try_allocate(uvisor_pool_t * pool, uint32_t timeout_ms)
+{
+    if (pool->blocking) {
+        int status;
+        status = uvisor_semaphore_pend(&pool->semaphore, timeout_ms);
+        if (status) {
+            /* We may have timed out waiting for a slot. */
+            return UVISOR_POOL_SLOT_INVALID;
+        }
+    }
+
+    /* uvisor should try lock. users should wait forever... */
+    bool locked = uvisor_spin_trylock(&pool->spinlock);
+    if (!locked) {
+        /* We didn't get the lock. */
+        return UVISOR_POOL_SLOT_INVALID;
+    }
+    uvisor_pool_slot_t fresh = pool_alloc(pool);
+    uvisor_spin_unlock(&pool->spinlock);
 
     return fresh;
 }
 
 void uvisor_pool_queue_enqueue(uvisor_pool_queue_t * pool_queue, uvisor_pool_slot_t slot)
 {
-    uvisor_mutex_acquire(&pool_queue->pool.mutex, UVISOR_WAIT_FOREVER);
+    uvisor_spin_lock(&pool_queue->pool.spinlock);
     if (slot != UVISOR_POOL_SLOT_INVALID) {
         enqueue(pool_queue, slot);
     }
-    uvisor_mutex_release(&pool_queue->pool.mutex);
+    uvisor_spin_unlock(&pool_queue->pool.spinlock);
 }
 
 static void pool_free(uvisor_pool_t * pool, uvisor_pool_slot_t slot)
@@ -171,16 +195,16 @@ uvisor_pool_slot_t uvisor_pool_free(uvisor_pool_t * pool, uvisor_pool_slot_t slo
     }
 
     uvisor_pool_queue_entry_t * slot_entry = &pool->management_array[slot];
-    uvisor_mutex_acquire(&pool->mutex, UVISOR_WAIT_FOREVER);
+    uvisor_spin_lock(&pool->spinlock);
     uvisor_pool_slot_t state = slot_entry->dequeued.state;
     if (state == UVISOR_POOL_SLOT_IS_FREE) {
         /* Already freed. Return. */
-        uvisor_mutex_release(&pool->mutex);
+        uvisor_spin_unlock(&pool->spinlock);
         return state;
     }
 
     pool_free(pool, slot);
-    uvisor_mutex_release(&pool->mutex);
+    uvisor_spin_unlock(&pool->spinlock);
     if (pool->blocking) {
         uvisor_semaphore_post(&pool->semaphore);
     }
@@ -196,11 +220,11 @@ uvisor_pool_slot_t uvisor_pool_queue_dequeue(uvisor_pool_queue_t * pool_queue, u
     }
 
     uvisor_pool_queue_entry_t * slot_entry = &pool_queue->pool.management_array[slot];
-    uvisor_mutex_acquire(&pool_queue->pool.mutex, UVISOR_WAIT_FOREVER);
+    uvisor_spin_lock(&pool_queue->pool.spinlock);
     uvisor_pool_slot_t state = slot_entry->dequeued.state;
     if (state == UVISOR_POOL_SLOT_IS_FREE || state == UVISOR_POOL_SLOT_IS_DEQUEUED) {
         /* Already dequeued or freed. Return. */
-        uvisor_mutex_release(&pool_queue->pool.mutex);
+        uvisor_spin_unlock(&pool_queue->pool.spinlock);
         return state;
     }
 
@@ -209,7 +233,7 @@ uvisor_pool_slot_t uvisor_pool_queue_dequeue(uvisor_pool_queue_t * pool_queue, u
         /* Dequeue the slot. */
         dequeue(pool_queue, slot);
     }
-    uvisor_mutex_release(&pool_queue->pool.mutex);
+    uvisor_spin_unlock(&pool_queue->pool.spinlock);
 
     return slot;
 }
@@ -218,7 +242,7 @@ uvisor_pool_slot_t uvisor_pool_queue_dequeue_first(uvisor_pool_queue_t * pool_qu
 {
     uvisor_pool_slot_t slot;
 
-    uvisor_mutex_acquire(&pool_queue->pool.mutex, UVISOR_WAIT_FOREVER);
+    uvisor_spin_lock(&pool_queue->pool.spinlock);
     slot = pool_queue->head;
 
     /* If the queue is non-empty: */
@@ -226,7 +250,7 @@ uvisor_pool_slot_t uvisor_pool_queue_dequeue_first(uvisor_pool_queue_t * pool_qu
         /* Dequeue the slot. */
         dequeue(pool_queue, slot);
     }
-    uvisor_mutex_release(&pool_queue->pool.mutex);
+    uvisor_spin_unlock(&pool_queue->pool.spinlock);
 
     return slot;
 }
@@ -236,25 +260,25 @@ uvisor_pool_slot_t uvisor_pool_queue_find_first(uvisor_pool_queue_t * pool_queue
 {
     uvisor_pool_slot_t slot;
 
-    uvisor_mutex_acquire(&pool_queue->pool.mutex, UVISOR_WAIT_FOREVER);
+    uvisor_spin_lock(&pool_queue->pool.spinlock);
     /* Walk the queue, looking for the first slot that matches the query. */
     slot = pool_queue->head;
     while (slot != UVISOR_POOL_SLOT_INVALID)
     {
         uvisor_pool_queue_entry_t * entry = &pool_queue->pool.management_array[slot];
 
-        /* NOTE: The query function is called with the queue mutex held, so be
-         * careful. */
+        /* NOTE: The query function is called with the queue spinlock held, so
+         * be careful. */
         int query_result = query_fn(slot, context);
 
         if (query_result) {
-            uvisor_mutex_release(&pool_queue->pool.mutex);
+            uvisor_spin_unlock(&pool_queue->pool.spinlock);
             return slot;
         }
 
         slot = entry->queued.next;
     }
-    uvisor_mutex_release(&pool_queue->pool.mutex);
+    uvisor_spin_unlock(&pool_queue->pool.spinlock);
 
     /* We didn't find a match. */
     return UVISOR_POOL_SLOT_INVALID;
