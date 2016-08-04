@@ -17,6 +17,11 @@
 #ifndef __UVISOR_API_LIB_HOOK_EXPORTS_H__
 #define __UVISOR_API_LIB_HOOK_EXPORTS_H__
 
+#include <stdint.h>
+
+/* Predeclaration */
+typedef struct uvisor_semaphore UvisorSemaphore;
+
 /*
  * uVisor library hooks
  *
@@ -24,6 +29,8 @@
  * These functions will be run by unprivileged code only. */
 typedef struct {
     void (*box_init)(void * lib_config);
+    int (*semaphore_init)(UvisorSemaphore * semaphore, int32_t count);
+    int (*semaphore_pend)(UvisorSemaphore * semaphore, uint32_t timeout_ms);
 } UvisorLibHooks;
 
 #endif
