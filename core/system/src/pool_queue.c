@@ -227,6 +227,35 @@ uvisor_pool_slot_t uvisor_pool_free(uvisor_pool_t * pool, uvisor_pool_slot_t slo
     return slot;
 }
 
+uvisor_pool_slot_t uvisor_pool_try_free(uvisor_pool_t * pool, uvisor_pool_slot_t slot)
+{
+    /* TODO refactor with uvisor_pool_queue_dequeue */
+    if (slot >= pool->num) {
+        return UVISOR_POOL_SLOT_INVALID;
+    }
+
+    uvisor_pool_queue_entry_t * slot_entry = &pool->management_array[slot];
+    bool locked = uvisor_spin_try_lock(&pool->spinlock);
+    if (!locked) {
+        /* We couldn't get the lock. */
+        return UVISOR_POOL_SLOT_INVALID;
+    }
+    uvisor_pool_slot_t state = slot_entry->dequeued.state;
+    if (state == UVISOR_POOL_SLOT_IS_FREE) {
+        /* Already freed. Return. */
+        uvisor_spin_unlock(&pool->spinlock);
+        return state;
+    }
+
+    pool_free(pool, slot);
+    uvisor_spin_unlock(&pool->spinlock);
+    if (pool->blocking) {
+        uvisor_semaphore_post(&pool->semaphore);
+    }
+
+    return slot;
+}
+
 uvisor_pool_slot_t uvisor_pool_queue_dequeue(uvisor_pool_queue_t * pool_queue, uvisor_pool_slot_t slot)
 {
     /* TODO refactor with uvisor_pool_free */
