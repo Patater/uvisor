@@ -179,10 +179,9 @@ static void drain_message_queue(void)
         uvisor_rpc_message_t * dest_array = (uvisor_rpc_message_t *) dest_queue->pool.array;
 
         /* Place the message into the destination box queue. */
-        static const uint32_t timeout_ms = 0; /* Don't wait for space in the destination queue. */
-        uvisor_pool_slot_t dest_slot = uvisor_pool_queue_try_allocate(dest_queue, timeout_ms);
+        uvisor_pool_slot_t dest_slot = uvisor_pool_queue_try_allocate(dest_queue);
 
-        /* If there is space in the destination queue: */
+        /* If the queue is not busy and there is space in the destination queue: */
         if (dest_slot < dest_queue->pool.num)
         {
             int status;
@@ -201,7 +200,7 @@ static void drain_message_queue(void)
                  * to keep the allocated slot around. However, if we couldn't
                  * enqueue the slot, we'll have a hard time freeing it, since
                  * that requires the same lock. */
-                HALT_ERROR("We were able to get the destination RPC slot allocated, but couldn't enqueue the message.");
+                HALT_ERROR(SANITY_CHECK_FAILED, "We were able to get the destination RPC slot allocated, but couldn't enqueue the message.");
             }
 
             /* Poke anybody waiting on calls to this target function. */
@@ -232,7 +231,7 @@ static void drain_message_queue(void)
                  * to lose messages due to not being able to put them back in
                  * the queue. However, if we could dequeue the slot
                  * we should have no trouble enqueuing the slot here. */
-                HALT_ERROR("We were able to get the dequeue an RPC message, but weren't able to put the message back.");
+                HALT_ERROR(SANITY_CHECK_FAILED, "We were able to get the dequeue an RPC message, but weren't able to put the message back.");
             }
         }
     } while (1);
