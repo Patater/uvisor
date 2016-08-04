@@ -98,7 +98,7 @@ typedef struct {
 
     /* Functions provided by uVisor Lib for use by uVisor in unprivileged mode
      * */
-    void (*lib_box_init)(void * lib_config);
+    UvisorLibHooks const * const lib_hooks;
 } UVISOR_PACKED UvisorConfig;
 
 extern UvisorConfig const __uvisor_config;
