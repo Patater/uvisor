@@ -18,7 +18,7 @@
 #include "api/inc/lib_hooks_exports.h"
 
 const UvisorLibHooks __uvisor_lib_hooks = {
-    .lib_box_init = __uvisor_lib_box_init,
+    .box_init = __uvisor_lib_box_init,
     .semaphore_init = __uvisor_semaphore_init,
     .semaphore_pend = __uvisor_semaphore_pend,
 };
