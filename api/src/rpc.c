@@ -277,7 +277,7 @@ int rpc_fncall_waitfor(const TFN_Ptr fn_ptr_array[], size_t fn_count, uint32_t t
     fn_group = get_or_allocate_function_group(fn_ptr_array, fn_count);
 
     /* Wait for incoming RPC. */
-    status = uvisor_semaphore_pend(&fn_group->semaphore, timeout_ms);
+    status = __uvisor_semaphore_pend(&fn_group->semaphore, timeout_ms);
     if (status) {
         /* The semaphore pend failed. */
         return status;
