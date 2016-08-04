@@ -164,6 +164,11 @@ static inline uvisor_pool_slot_t uvisor_pool_queue_allocate(uvisor_pool_queue_t 
     return uvisor_pool_allocate(&pool_queue->pool, timeout_ms);
 }
 
+static inline uvisor_pool_slot_t uvisor_pool_queue_try_allocate(uvisor_pool_queue_t * pool_queue)
+{
+    return uvisor_pool_try_allocate(&pool_queue->pool);
+}
+
 /* Inline helper function to make freeing slots for pool queues easier and
  * better encapsulated (clients don't need to pull the pool out of the pool
  * queue, or even realize pool_queue is implemented with a pool) */
