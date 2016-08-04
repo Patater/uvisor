@@ -9,13 +9,9 @@
  * for them. */
 typedef struct uvisor_semaphore {
     uint8_t internal[UVISOR_SEMAPHORE_INTERNAL_SIZE];
-
-    struct uvisor_semaphore * next;
 } uvisor_semaphore_t;
 
 UVISOR_EXTERN int uvisor_semaphore_init(uvisor_semaphore_t * semaphore, int32_t count);
-
-UVISOR_EXTERN void uvisor_semaphore_list_append(uvisor_semaphore_t * semaphore_list, uvisor_semaphore_t * next);
 
 /* This function is not safe to call from interrupt context, even if the
  * timeout is zero. */
