@@ -17,6 +17,8 @@
 #ifndef __UVISOR_API_BOX_INIT_H__
 #define __UVISOR_API_BOX_INIT_H__
 
+#include "api/inc/uvisor-lib.h"
+
 UVISOR_EXTERN void __uvisor_lib_box_init(void * lib_config);
 
 #endif
