@@ -124,6 +124,7 @@ UVISOR_EXTERN uvisor_pool_slot_t uvisor_pool_try_allocate(uvisor_pool_t * pool);
 
 /* Enqueue the specified slot into the queue. */
 UVISOR_EXTERN void uvisor_pool_queue_enqueue(uvisor_pool_queue_t * pool_queue, uvisor_pool_slot_t slot);
+UVISOR_EXTERN int uvisor_pool_queue_try_enqueue(uvisor_pool_queue_t * pool_queue, uvisor_pool_slot_t slot);
 
 /* Free the specified slot back into the pool. Invalid slots are ignored.
  * Return the slot that was freed, or UVISOR_POOL_SLOT_IS_FREE if the slot was
@@ -144,6 +145,7 @@ UVISOR_EXTERN uvisor_pool_slot_t uvisor_pool_queue_dequeue(uvisor_pool_queue_t *
  * UVISOR_POOL_SLOT_INVALID if the slot being requested to dequeue is outside
  * the range of the queue. */
 UVISOR_EXTERN uvisor_pool_slot_t uvisor_pool_queue_dequeue_first(uvisor_pool_queue_t * pool_queue);
+UVISOR_EXTERN uvisor_pool_slot_t uvisor_pool_queue_try_dequeue_first(uvisor_pool_queue_t * pool_queue);
 
 /* Find the first (in queue order) slot that the supplied query function
  * returns non-zero for. The query function is provided with `context` on every

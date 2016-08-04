@@ -142,11 +142,26 @@ uvisor_pool_slot_t uvisor_pool_try_allocate(uvisor_pool_t * pool, uint32_t timeo
 
 void uvisor_pool_queue_enqueue(uvisor_pool_queue_t * pool_queue, uvisor_pool_slot_t slot)
 {
-    uvisor_spin_lock(&pool_queue->pool.spinlock);
     if (slot != UVISOR_POOL_SLOT_INVALID) {
+        uvisor_spin_lock(&pool_queue->pool.spinlock);
         enqueue(pool_queue, slot);
+        uvisor_spin_unlock(&pool_queue->pool.spinlock);
     }
-    uvisor_spin_unlock(&pool_queue->pool.spinlock);
+}
+
+int uvisor_pool_queue_try_enqueue(uvisor_pool_queue_t * pool_queue, uvisor_pool_slot_t slot)
+{
+    if (slot != UVISOR_POOL_SLOT_INVALID) {
+        bool locked = uvisor_spin_try_lock(&pool_queue->pool.spinlock);
+        if (!locked) {
+            /* We couldn't lock. */
+            return -1;
+        }
+        enqueue(pool_queue, slot);
+        uvisor_spin_unlock(&pool_queue->pool.spinlock);
+    }
+
+    return 0;
 }
 
 static void pool_free(uvisor_pool_t * pool, uvisor_pool_slot_t slot)
@@ -243,6 +258,28 @@ uvisor_pool_slot_t uvisor_pool_queue_dequeue_first(uvisor_pool_queue_t * pool_qu
     uvisor_pool_slot_t slot;
 
     uvisor_spin_lock(&pool_queue->pool.spinlock);
+    slot = pool_queue->head;
+
+    /* If the queue is non-empty: */
+    if (pool_queue->head != UVISOR_POOL_SLOT_INVALID) {
+        /* Dequeue the slot. */
+        dequeue(pool_queue, slot);
+    }
+    uvisor_spin_unlock(&pool_queue->pool.spinlock);
+
+    return slot;
+}
+
+/* XXX Refactor */
+uvisor_pool_slot_t uvisor_pool_queue_try_dequeue_first(uvisor_pool_queue_t * pool_queue)
+{
+    uvisor_pool_slot_t slot;
+
+    bool locked = uvisor_spin_trylock(&pool_queue->pool.spinlock);
+    if (!locked) {
+        /* We didn't get the lock. */
+        return UVISOR_POOL_SLOT_INVALID;
+    }
     slot = pool_queue->head;
 
     /* If the queue is non-empty: */
