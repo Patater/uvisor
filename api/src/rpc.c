@@ -20,6 +20,7 @@
 #include "api/inc/vmpu_exports.h"
 #include "api/inc/pool_queue_exports.h"
 #include "api/inc/error.h"
+#include "api/inc/uvisor_semaphore.h"
 #include <string.h>
 
 extern UvisorBoxIndex * __uvisor_ps;
@@ -104,7 +105,7 @@ static int send_outgoing_rpc(uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3,
  * the RPC completed. */
 static int wait_for_rpc_result(uvisor_pool_slot_t msg_slot, uint32_t timeout_ms)
 {
-    return uvisor_semaphore_pend(&outgoing_message_array()[msg_slot].semaphore, timeout_ms);
+    return __uvisor_semaphore_pend(&outgoing_message_array()[msg_slot].semaphore, timeout_ms);
 }
 
 static void free_outgoing_msg(uvisor_pool_slot_t msg_slot)
