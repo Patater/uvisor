@@ -117,11 +117,11 @@ uvisor_pool_slot_t uvisor_pool_allocate(uvisor_pool_t * pool, uint32_t timeout_m
     return fresh;
 }
 
-uvisor_pool_slot_t uvisor_pool_try_allocate(uvisor_pool_t * pool, uint32_t timeout_ms)
+uvisor_pool_slot_t uvisor_pool_try_allocate(uvisor_pool_t * pool)
 {
     if (pool->blocking) {
         int status;
-        status = uvisor_semaphore_pend(&pool->semaphore, timeout_ms);
+        status = uvisor_semaphore_pend(&pool->semaphore, 0);
         if (status) {
             /* We may have timed out waiting for a slot. */
             return UVISOR_POOL_SLOT_INVALID;
@@ -152,7 +152,7 @@ void uvisor_pool_queue_enqueue(uvisor_pool_queue_t * pool_queue, uvisor_pool_slo
 int uvisor_pool_queue_try_enqueue(uvisor_pool_queue_t * pool_queue, uvisor_pool_slot_t slot)
 {
     if (slot != UVISOR_POOL_SLOT_INVALID) {
-        bool locked = uvisor_spin_try_lock(&pool_queue->pool.spinlock);
+        bool locked = uvisor_spin_trylock(&pool_queue->pool.spinlock);
         if (!locked) {
             /* We couldn't lock. */
             return -1;
@@ -235,7 +235,7 @@ uvisor_pool_slot_t uvisor_pool_try_free(uvisor_pool_t * pool, uvisor_pool_slot_t
     }
 
     uvisor_pool_queue_entry_t * slot_entry = &pool->management_array[slot];
-    bool locked = uvisor_spin_try_lock(&pool->spinlock);
+    bool locked = uvisor_spin_trylock(&pool->spinlock);
     if (!locked) {
         /* We couldn't get the lock. */
         return UVISOR_POOL_SLOT_INVALID;
