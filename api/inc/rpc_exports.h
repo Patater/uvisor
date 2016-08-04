@@ -35,7 +35,7 @@ typedef struct uvisor_rpc_message {
     uint32_t gateway_address;
 
     /* The semaphore to post to when a result is ready */
-    uvisor_semaphore_t semaphore;
+    UvisorSemaphore semaphore;
 
     uint32_t result;
 } uvisor_rpc_message_t;
@@ -60,7 +60,7 @@ typedef struct uvisor_rpc_fn_group {
     size_t fn_count;
 
     /* The semaphore to wait on for this function group */
-    uvisor_semaphore_t semaphore;
+    UvisorSemaphore semaphore;
 } uvisor_rpc_fn_group_t;
 
 #define UVISOR_RPC_OUTGOING_MESSAGE_SLOTS (4)

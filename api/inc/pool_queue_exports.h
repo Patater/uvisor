@@ -76,7 +76,7 @@ typedef struct uvisor_pool {
     uvisor_pool_slot_t first_free;
 
     /* The semaphore is used to block allocations when the pool is full. */
-    uvisor_semaphore_t semaphore;
+    UvisorSemaphore semaphore;
 
     /* The spinlock serializes updates to the management array. */
     UvisorSpinlock spinlock;

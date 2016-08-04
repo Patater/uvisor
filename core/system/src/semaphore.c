@@ -14,22 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <uvisor.h>
 #include "semaphore.h"
 
-int uvisor_semaphore_init(uvisor_semaphore_t * s, int32_t count)
+int semaphore_init(UvisorSemaphore * semaphore, int32_t count)
 {
-    /* TODO If interrupt context, die because uVisor programmer error */
+    /* TODO If privileged mode, die because uVisor programmer error */
     //HALT_ERROR(NOT_ALLOWED, "Semaphores must be initialized from outside of uVisor.");
-    return __uvisor_config.lib_hooks.semaphore_init(semaphore, count);
+    return __uvisor_config.lib_hooks->semaphore_init(semaphore, count);
 }
 
-int uvisor_semaphore_pend(uvisor_semaphore_t * s, uint32_t timeout_ms)
+int semaphore_pend(UvisorSemaphore * semaphore, uint32_t timeout_ms)
 {
-    /* TODO If interrupt context, die because uVisor programmer error*/
+    /* TODO If privileged mode, die because uVisor programmer error*/
     //HALT_ERROR(NOT_ALLOWED, "Semaphores can't be pended upon from inside uVisor.");
-    return __uvisor_config.lib_hooks.semaphore_pend(semaphore, timeout_ms);
+    return __uvisor_config.lib_hooks->semaphore_pend(semaphore, timeout_ms);
 }
 
-int uvisor_semaphore_post(uvisor_semaphore_t * s) {
+int semaphore_post(UvisorSemaphore * semaphore) {
     return g_priv_sys_hooks.priv_uvisor_semaphore_post(semaphore);
 }
