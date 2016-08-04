@@ -32,5 +32,9 @@ int semaphore_pend(UvisorSemaphore * semaphore, uint32_t timeout_ms)
 }
 
 int semaphore_post(UvisorSemaphore * semaphore) {
-    return g_priv_sys_hooks.priv_uvisor_semaphore_post(semaphore);
+/* XXX Cant' use the RAM-located hook for this, because this code will also be
+ * called unpriv. We can add an if statement here, or call the flash based one
+ * */
+    return __uvisor_config.priv_sys_hooks->priv_uvisor_semaphore_post(semaphore);
+    //return g_priv_sys_hooks.priv_uvisor_semaphore_post(semaphore); // Nope
 }
