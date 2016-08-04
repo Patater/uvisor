@@ -108,12 +108,12 @@ SOURCES:=\
          $(CORE_SYSTEM_DIR)/src/page_allocator_faults.c \
          $(CORE_SYSTEM_DIR)/src/pool_queue.c \
          $(CORE_SYSTEM_DIR)/src/register_gateway.c \
+         $(CORE_SYSTEM_DIR)/src/semaphore.c \
          $(CORE_SYSTEM_DIR)/src/stdlib.c \
          $(CORE_SYSTEM_DIR)/src/svc.c \
          $(CORE_SYSTEM_DIR)/src/system.c \
          $(CORE_SYSTEM_DIR)/src/unvic.c \
          $(CORE_SYSTEM_DIR)/src/uvisor_mutex.c \
-         $(CORE_SYSTEM_DIR)/src/uvisor_semaphore.c \
          $(CORE_SYSTEM_DIR)/src/uvisor_spinlock.c \
          $(CORE_SYSTEM_DIR)/src/mpu/vmpu.c \
          $(CORE_DEBUG_DIR)/src/debug.c \
