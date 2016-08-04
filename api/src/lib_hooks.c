@@ -14,8 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "api/inc/box_init.h"
 #include "api/inc/lib_hook_exports.h"
+#include "api/inc/box_init.h"
 
 const UvisorLibHooks __uvisor_lib_hooks = {
     .box_init = __uvisor_lib_box_init,
