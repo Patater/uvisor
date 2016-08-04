@@ -17,7 +17,7 @@
 #include "uvisor-lib/uvisor-lib.h"
 #include "api/inc/pool_queue_exports.h"
 #include "api/inc/rpc_exports.h"
-#include "api/inc/uvisor_semaphore_exports.h"
+#include "api/inc/uvisor_semaphore.h"
 #include "mbed_interface.h"
 #include "cmsis_os.h"
 #include <stdint.h>
@@ -47,8 +47,8 @@ void __uvisor_initialize_rpc_queues(void)
 
     /* Initialize all the result semaphores. */
     for (i = 0; i < UVISOR_RPC_OUTGOING_MESSAGE_SLOTS; i++) {
-        uvisor_semaphore_t * semaphore = &rpc_outgoing_msg_queue->messages[i].semaphore;
-        if (uvisor_semaphore_init(semaphore, 1)) {
+        UvisorSemaphore * semaphore = &rpc_outgoing_msg_queue->messages[i].semaphore;
+        if (__uvisor_semaphore_init(semaphore, 1)) {
             uvisor_error(USER_NOT_ALLOWED);
         }
 
@@ -56,7 +56,7 @@ void __uvisor_initialize_rpc_queues(void)
          * want the semaphore to start at zero. Decrement the semaphore, so it
          * starts with a value of zero. This will allow the first pend to
          * block. */
-        if (uvisor_semaphore_pend(semaphore, 0)) {
+        if (__uvisor_semaphore_pend(semaphore, 0)) {
             uvisor_error(USER_NOT_ALLOWED);
         }
     }
