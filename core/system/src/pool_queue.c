@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 #include "api/inc/pool_queue_exports.h"
+#include "semaphore.h"
 #include <string.h>
 
 int uvisor_pool_init(uvisor_pool_t * pool, void * array, size_t stride, size_t num, int blocking)
@@ -36,7 +37,7 @@ int uvisor_pool_init(uvisor_pool_t * pool, void * array, size_t stride, size_t n
     uvisor_spin_init(&pool->spinlock);
 
     if (pool->blocking) {
-        uvisor_semaphore_init(&pool->semaphore, num);
+        semaphore_init(&pool->semaphore, num);
     }
 
     return 0;
@@ -102,7 +103,7 @@ uvisor_pool_slot_t uvisor_pool_allocate(uvisor_pool_t * pool, uint32_t timeout_m
 {
     if (pool->blocking) {
         int status;
-        status = uvisor_semaphore_pend(&pool->semaphore, timeout_ms);
+        status = semaphore_pend(&pool->semaphore, timeout_ms);
         if (status) {
             /* We may have timed out waiting for a slot. */
             return UVISOR_POOL_SLOT_INVALID;
@@ -121,7 +122,7 @@ uvisor_pool_slot_t uvisor_pool_try_allocate(uvisor_pool_t * pool)
 {
     if (pool->blocking) {
         int status;
-        status = uvisor_semaphore_pend(&pool->semaphore, 0);
+        status = semaphore_pend(&pool->semaphore, 0);
         if (status) {
             /* We may have timed out waiting for a slot. */
             return UVISOR_POOL_SLOT_INVALID;
@@ -221,7 +222,7 @@ uvisor_pool_slot_t uvisor_pool_free(uvisor_pool_t * pool, uvisor_pool_slot_t slo
     pool_free(pool, slot);
     uvisor_spin_unlock(&pool->spinlock);
     if (pool->blocking) {
-        uvisor_semaphore_post(&pool->semaphore);
+        semaphore_post(&pool->semaphore);
     }
 
     return slot;
@@ -250,7 +251,7 @@ uvisor_pool_slot_t uvisor_pool_try_free(uvisor_pool_t * pool, uvisor_pool_slot_t
     pool_free(pool, slot);
     uvisor_spin_unlock(&pool->spinlock);
     if (pool->blocking) {
-        uvisor_semaphore_post(&pool->semaphore);
+        semaphore_post(&pool->semaphore);
     }
 
     return slot;
