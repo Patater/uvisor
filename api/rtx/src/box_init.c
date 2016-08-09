@@ -79,7 +79,7 @@ void __uvisor_initialize_rpc_queues(void)
         uvisor_error(USER_NOT_ALLOWED);
     }
 
-    /* Initialize fn_group pool */
+    /* Initialize the function group pool. */
     if (uvisor_pool_init(&rpc_fn_group_pool->pool,
                          rpc_fn_group_pool->fn_groups,
                          sizeof(*rpc_fn_group_pool->fn_groups),
@@ -88,7 +88,7 @@ void __uvisor_initialize_rpc_queues(void)
         uvisor_error(USER_NOT_ALLOWED);
     }
 
-    /* Initialize all the fn_group semaphores. */
+    /* Initialize all the function group semaphores. */
     for (i = 0; i < UVISOR_RPC_FN_GROUP_SLOTS; i++) {
         UvisorSemaphore * semaphore = &rpc_fn_group_pool->fn_groups[i].semaphore;
         if (__uvisor_semaphore_init(semaphore, 1)) {
