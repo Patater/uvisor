@@ -237,6 +237,11 @@ static void drain_message_queue(void)
             /* XXX Note that we don't have to modify data here of the message
              * in the source queue, since it'll still be valid. Nobody else
              * will have run at the same time that could mess it up... */
+
+            /* Stop looping, because the system needs to continue running to
+             * the destination messages can get processed to free up more room.
+             * */
+            break;
         }
     } while (1);
 }
