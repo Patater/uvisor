@@ -50,7 +50,7 @@ UVISOR_EXTERN const uint32_t __uvisor_mode;
             sizeof(uvisor_rpc_outgoing_message_queue_t), \
             sizeof(uvisor_rpc_incoming_message_queue_t), \
             sizeof(uvisor_rpc_outgoing_result_queue_t), \
-            sizeof(uvisor_rpc_fn_group_t), \
+            sizeof(uvisor_rpc_fn_group_pool_t), \
         }, \
         NULL, \
         NULL, \
@@ -76,7 +76,7 @@ UVISOR_EXTERN const uint32_t __uvisor_mode;
                     sizeof(uvisor_rpc_outgoing_message_queue_t) + \
                     sizeof(uvisor_rpc_incoming_message_queue_t) + \
                     sizeof(uvisor_rpc_outgoing_result_queue_t) + \
-                    sizeof(uvisor_rpc_fn_group_t) \
+                    sizeof(uvisor_rpc_fn_group_pool_t) \
                 ) \
             * 8) \
         / 6)]; \
@@ -92,7 +92,7 @@ UVISOR_EXTERN const uint32_t __uvisor_mode;
             sizeof(uvisor_rpc_outgoing_message_queue_t), \
             sizeof(uvisor_rpc_incoming_message_queue_t), \
             sizeof(uvisor_rpc_outgoing_result_queue_t), \
-            sizeof(uvisor_rpc_fn_group_t), \
+            sizeof(uvisor_rpc_fn_group_pool_t), \
         }, \
         __uvisor_box_lib_config, \
         __uvisor_box_namespace, \
