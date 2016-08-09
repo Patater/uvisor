@@ -6,8 +6,8 @@
 typedef struct uvisor_semaphore_internal {
     osSemaphoreId id;
     osSemaphoreDef_t def;
-    uint32_t data[2];
-} uvisor_semaphore_internal_t;
+    uint32_t data[2]; /* RTX expects this is 4-byte aligned */
+} UVISOR_ALIGN(4) uvisor_semaphore_internal_t;
 
 UVISOR_STATIC_ASSERT(UVISOR_SEMAPHORE_INTERNAL_SIZE >= sizeof(UvisorSemaphore), semaphore_size_too_small);
 

@@ -26,6 +26,6 @@
  * memory. */
 typedef struct uvisor_semaphore {
     uint8_t internal[UVISOR_SEMAPHORE_INTERNAL_SIZE];
-} UvisorSemaphore;
+} UVISOR_ALIGN(4) UvisorSemaphore;
 
 #endif
