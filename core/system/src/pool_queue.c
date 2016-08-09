@@ -37,7 +37,7 @@ int uvisor_pool_init(uvisor_pool_t * pool, void * array, size_t stride, size_t n
     uvisor_spin_init(&pool->spinlock);
 
     if (pool->blocking) {
-        semaphore_init(&pool->semaphore, num);
+        return semaphore_init(&pool->semaphore, num);
     }
 
     return 0;
