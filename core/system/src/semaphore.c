@@ -26,7 +26,7 @@ int semaphore_init(UvisorSemaphore * semaphore, int32_t count)
 
 int semaphore_pend(UvisorSemaphore * semaphore, uint32_t timeout_ms)
 {
-    /* TODO If privileged mode, die because uVisor programmer error*/
+    /* TODO If privileged mode, die because uVisor programmer error */
     //HALT_ERROR(NOT_ALLOWED, "Semaphores can't be pended upon from inside uVisor.");
     return __uvisor_config.lib_hooks->semaphore_pend(semaphore, timeout_ms);
 }
