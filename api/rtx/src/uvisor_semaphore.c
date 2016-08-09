@@ -29,8 +29,12 @@ int __uvisor_semaphore_pend(UvisorSemaphore * s, uint32_t timeout_ms)
 
     int32_t num_available_tokens = osSemaphoreWait(semaphore->id, timeout_ms);
 
-    /* If no tokens were available, error. */
-    return -(num_available_tokens == 0);
+    if (num_available_tokens == -1 || num_available_tokens == 0) {
+        /* Invalid parameters or no tokens available */
+        return -1;
+    }
+
+    return 0;
 }
 
 int __uvisor_semaphore_post(UvisorSemaphore * s) {
