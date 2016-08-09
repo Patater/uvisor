@@ -110,9 +110,9 @@ static int wait_for_rpc_result(uvisor_pool_slot_t msg_slot, uint32_t timeout_ms)
 
 static void free_outgoing_msg(uvisor_pool_slot_t msg_slot)
 {
-    /* We are done with the outgoing RPC message now. uVisor dequeued the
-     * RPC message for on our behalf when uVisor sent the message to the
-     * destination, so we can just free without dequeueing first. */
+    /* We are done with the outgoing RPC message now. uVisor dequeued the RPC
+     * message on our behalf when uVisor sent the message to the destination,
+     * so we can just free without dequeueing first. */
     if (outgoing_message_queue()->pool.management_array[msg_slot].dequeued.state != UVISOR_POOL_SLOT_IS_DEQUEUED) {
         uvisor_error(USER_NOT_ALLOWED);
     }
@@ -141,7 +141,8 @@ uint32_t rpc_fncall_sync(uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3, con
         status = wait_for_rpc_result(msg_slot, UVISOR_WAIT_FOREVER);
     } while (status);
 
-    /* This message result is valid now, because we woke up. */
+    /* This message result is valid now, because we woke up with a non-fatal
+     * status. */
     result_value = outgoing_message_array()[msg_slot].result;
 
     free_outgoing_msg(msg_slot);
