@@ -231,8 +231,12 @@ static void drain_message_queue(void)
                  * to lose messages due to not being able to put them back in
                  * the queue. However, if we could dequeue the slot
                  * we should have no trouble enqueuing the slot here. */
-                HALT_ERROR(SANITY_CHECK_FAILED, "We were able to get the dequeue an RPC message, but weren't able to put the message back.");
+                HALT_ERROR(SANITY_CHECK_FAILED, "We were able to dequeue an RPC message, but weren't able to put the message back.");
             }
+
+            /* XXX Note that we don't have to modify data here of the message
+             * in the source queue, since it'll still be valid. Nobody else
+             * will have run at the same time that could mess it up... */
         }
     } while (1);
 }
@@ -252,11 +256,8 @@ static void drain_result_queue(void)
         uvisor_rpc_result_obj_t uvisor_result;
         uvisor_pool_slot_t source_slot;
 
-        /* NOTE: We both dequeue and free the message from the queue. The
-         * callee (the one sending result messages) doesn't care about the
-         * message after they post it to their outgoing result queue. */
+        /* Dequeue the first result message from the queue. */
         source_slot = uvisor_pool_queue_try_dequeue_first(source_queue);
-        source_slot = uvisor_pool_queue_try_free(source_queue, source_slot);
         if (source_slot >= source_queue->pool.num) {
             /* The queue is empty or busy. */
             break;
@@ -266,6 +267,21 @@ static void drain_result_queue(void)
 
         /* Copy the message. FIXME use unpriv copying */
         memcpy(&uvisor_result, result, sizeof(uvisor_result));
+
+        /* Now that we've copied the message, we can free it from the source
+         * queue. The callee (the one sending result messages) doesn't care
+         * about the message after they post it to their outgoing result queue.
+         * */
+        source_slot = uvisor_pool_queue_try_free(source_queue, source_slot);
+        if (source_slot >= source_queue->pool.num) {
+            /* The queue is empty or busy. This should never happen. */
+            /* XXX It is bad to take down the entire system. It is also bad to
+             * never free slots in the outgoing result queue. However, if we
+             * could dequeue the slot we should have no trouble freeing the
+             * slot here. */
+            HALT_ERROR(SANITY_CHECK_FAILED, "We were able to dequeue a result message, but weren't able to free the result message.");
+            break;
+        }
 
         /* Look up the origin message. This should have been remembered
          * by uVisor when it did the initial delivery. */
@@ -292,8 +308,15 @@ static void drain_result_queue(void)
         /* Write the result value to the destination. FIXME use unpriv writing */
         dest_msg->result = uvisor_result.value;
 
-        /* Post to the result semaphore */
-        semaphore_post(&dest_msg->semaphore);
+        /* Post to the result semaphore, TODO ignoring errors. */
+        int status;
+        status = semaphore_post(&dest_msg->semaphore);
+        if (status) {
+            /* XXX The semaphore was bad. We shouldn't really bring down the entire
+             * system if one box messes up its own semaphore. In a
+             * non-malicious system, this should never happen. */
+            HALT_ERROR(SANITY_CHECK_FAILED, "We couldn't semaphore.");
+        }
 
         /* Switch back to the source box if the thread is in a different
          * process than we are currently in. We do this here for one reason.
