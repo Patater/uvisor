@@ -179,7 +179,8 @@ int rpc_fncall_wait(uvisor_rpc_result_t result, uint32_t timeout_ms, uint32_t * 
         return status;
     }
 
-    /* The message result is valid now, because we woke up. */
+    /* The message result is valid now, because we woke up with a non-fatal
+     * status. */
     *ret = outgoing_message_array()[msg_slot].result;
 
     free_outgoing_msg(msg_slot);
