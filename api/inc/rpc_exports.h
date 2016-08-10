@@ -63,7 +63,7 @@ typedef struct uvisor_rpc_fn_group {
     UvisorSemaphore semaphore;
 } uvisor_rpc_fn_group_t;
 
-#define UVISOR_RPC_OUTGOING_MESSAGE_SLOTS (4)
+#define UVISOR_RPC_OUTGOING_MESSAGE_SLOTS (8)
 
 #define UVISOR_RPC_INCOMING_MESSAGE_SLOTS (4)
 #define UVISOR_RPC_OUTGOING_RESULT_SLOTS (4)
