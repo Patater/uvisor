@@ -38,6 +38,11 @@ typedef struct uvisor_rpc_message {
     UvisorSemaphore semaphore;
 
     uint32_t result;
+
+    /* `msg_slot` identifies to uVisor which RPC it should complete. uVisor
+     * must verify this information of course, to see if this box is currently
+     * being called into and is allowed to complete the RPC. */
+    uvisor_pool_slot_t msg_slot;
 } uvisor_rpc_message_t;
 
 /* uvisor_rpc_result_t is just a slot number into a pool of result objects.

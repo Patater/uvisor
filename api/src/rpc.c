@@ -90,6 +90,7 @@ static int send_outgoing_rpc(uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3,
     msg->p2 = p2;
     msg->p3 = p3;
     msg->function = fn;
+    msg->msg_slot = slot;
 
     /* Put the slot into the queue. */
     uvisor_pool_queue_enqueue(outgoing_message_queue(), slot);
