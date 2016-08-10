@@ -50,9 +50,6 @@ typedef struct uvisor_rpc_message {
  * This is only used for outgoing rpc results. */
 typedef struct uvisor_rpc_result_obj
 {
-    /* `msg_slot` identifies to uVisor which RPC it should complete. uVisor
-     * must verify this information of course, to see if this box is currently
-     * being called into and is allowed to complete the RPC. */
     uvisor_pool_slot_t msg_slot;
 
     /* The return value from the RPC target function */

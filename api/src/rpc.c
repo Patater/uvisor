@@ -329,7 +329,7 @@ int rpc_fncall_waitfor(const TFN_Ptr fn_ptr_array[], size_t fn_count, uint32_t t
 
     /* Dispatch the RPC. */
     msg = &incoming_message_array()[msg_slot];
-    result->msg_slot = msg_slot;
+    result->msg_slot = msg->msg_slot;
     result->value = msg->function(msg->p0, msg->p1, msg->p2, msg->p3);
 
     /* We are done processing the message. Free it from our incoming queue. */
