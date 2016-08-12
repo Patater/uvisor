@@ -123,7 +123,13 @@ static void thread_destroy(void * c)
     /* Only if TID is valid and destruction status is zero. */
     if (thread_ctx_valid(g_active_box, context) && context->allocator && (box_id_for_context(context) == g_active_box)) {
         free_thread_local_storage(context);
+
+        /* XXX Destroy the allocator? */
     } else {
+        /* FIXME: This should be a debug only assertion, not present in release
+         * builds, to prevent a malicious box from taking down the entire
+         * system by fiddling with one of its thread contexts or destroying
+         * another box's thread. */
         HALT_ERROR(SANITY_CHECK_FAILED,
             "thread context (%08x) is invalid!\n",
             context);
