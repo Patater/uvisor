@@ -30,7 +30,9 @@
 #define UVISOR_EXPORT_TABLE_THREADS_MAX_COUNT ((uint32_t) 16)
 #endif
 
-/* Per thread we store the pointer to the allocator and the process id that
+/* uVisor-private Thread-local Storage
+ *
+ * Per thread we store the pointer to the allocator and the process id that
  * this thread belongs to. */
 typedef struct {
     void * allocator;
@@ -86,6 +88,9 @@ static void thread_destroy(void * c)
         /* Release this slot. */
         context->allocator = NULL;
     } else {
+        /* FIXME: This should be a debug only assertion, not present in release
+         * builds, to prevent a malicious box from taking down the entire
+         * system by fiddling with one of its thread contexts. */
         HALT_ERROR(SANITY_CHECK_FAILED,
             "thread context (%08x) is invalid!\n",
             context);
