@@ -22,6 +22,7 @@
 /* Box-private Thread Local Storage */
 typedef struct {
     void * allocator;
+    int box_id_caller;
 } UvisorThreadContext;
 
 #define UVISOR_THREAD_LOCAL_STORAGE_TYPE(slots) \

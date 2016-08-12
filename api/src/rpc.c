@@ -21,6 +21,7 @@
 #include "api/inc/pool_queue_exports.h"
 #include "api/inc/error.h"
 #include "api/inc/uvisor_semaphore.h"
+#include "api/inc/thread_context.h"
 #include <string.h>
 
 extern UvisorBoxIndex * __uvisor_ps;
@@ -345,10 +346,17 @@ int rpc_fncall_waitfor(const TFN_Ptr fn_ptr_array[], size_t fn_count, uint32_t t
     }
     uvisor_rpc_result_obj_t * result = &outgoing_result_array()[result_slot];
 
-    /* Dispatch the RPC. */
     msg = &incoming_message_array()[msg_slot];
+
+    /* Save the calling box ID */
+    thread_context()->box_id_caller = msg->source_box;
+
+    /* Dispatch the RPC. */
     result->cookie = msg->cookie;
     result->value = msg->function(msg->p0, msg->p1, msg->p2, msg->p3);
+
+    /* Clear the calling box ID */
+    thread_context()->box_id_caller = -1;
 
     /* We are done processing the message. Free it from our incoming queue. */
     uvisor_pool_queue_free(incoming_message_queue(), msg_slot);
