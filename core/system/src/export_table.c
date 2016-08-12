@@ -89,9 +89,12 @@ static void thread_destroy(void * c)
         /* Release this slot. */
         context->allocator = NULL;
     } else {
-        HALT_ERROR(SANITY_CHECK_FAILED,
-            "thread context (%08x) is invalid!\n",
-            context);
+        /* This is a debug only assertion, not present in release builds, to
+         * prevent a malicious box from taking down the entire system by
+         * fiddling with one of its thread contexts or destroying another box's
+         * thread. */
+        DPRINTF("thread context (%08x) is invalid!\r\n", context);
+        assert(false);
     }
 }
 
