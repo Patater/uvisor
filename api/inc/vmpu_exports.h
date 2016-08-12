@@ -223,6 +223,9 @@ typedef struct {
      * by accident. */
     uint32_t rpc_result_counter;
 
+    /* Box ID */
+    int box_id_self;
+
     /* Pointer to the box config */
     const UvisorBoxConfig * config;
 } UVISOR_PACKED UvisorBoxIndex;
