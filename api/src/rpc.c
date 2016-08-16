@@ -225,6 +225,8 @@ static uvisor_rpc_fn_group_t * allocate_function_group(const TFN_Ptr fn_ptr_arra
     fn_group->fn_ptr_array = fn_ptr_array;
     fn_group->fn_count = fn_count;
 
+    fn_group->ready = 0xB00BFACE;
+
     return fn_group;
 }
 

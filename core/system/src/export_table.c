@@ -122,10 +122,18 @@ static void wake_up_handlers_for_target(const TFN_Ptr function)
      * priority waiter already took care of handling the incoming RPC. */
     uvisor_pool_slot_t i;
     for (i = 0; i < fn_group_pool()->num; i++) {
+        /* XXX It is possible that the slot has been allocated for the
+         * fn_group, but not yet initialized. */
         /* If the entry in the pool is allocated: */
         if (fn_group_pool()->management_array[i].dequeued.state != UVISOR_POOL_SLOT_IS_FREE) {
             /* Look for the function in this function group. */
             uvisor_rpc_fn_group_t * fn_group = &fn_group_array()[i];
+
+            /* If not ready, ignore. */
+            if (fn_group->ready != 0xB00BFACE) {
+                continue;
+            }
+
             TFN_Ptr const * fn_ptr_array = fn_group->fn_ptr_array;
             uvisor_pool_slot_t j;
 
@@ -157,6 +165,12 @@ static int fetch_destination_box(const TFN_Ptr function)
             if (pool->management_array[i].dequeued.state != UVISOR_POOL_SLOT_IS_FREE) {
                 /* Look for the function in this function group. */
                 const uvisor_rpc_fn_group_t * fn_group = &array[i];
+
+                /* If not ready, ignore. */
+                if (fn_group->ready != 0xB00BFACE) {
+                    continue;
+                }
+
                 TFN_Ptr const * fn_ptr_array = fn_group->fn_ptr_array;
                 uvisor_pool_slot_t j;
 

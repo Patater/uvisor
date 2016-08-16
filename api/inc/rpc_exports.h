@@ -87,6 +87,7 @@ typedef struct uvisor_rpc_fn_group {
     /* A pointer to the function group */
     TFN_Ptr const * fn_ptr_array;
     size_t fn_count;
+    int ready;
 
     /* The semaphore to wait on for this function group */
     UvisorSemaphore semaphore;
