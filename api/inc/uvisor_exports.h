@@ -22,6 +22,12 @@
 /* maximum number of boxes allowed: 1 is the minimum (unprivileged box) */
 #define UVISOR_MAX_BOXES 5U
 
+/* By default a maximum of 6 threads per box are allowed. This can only be overridden
+ * by the porting engineer for the current platform. */
+#ifndef UVISOR_MAX_THREADS_PER_BOX
+#define UVISOR_MAX_THREADS_PER_BOX 6U
+#endif
+
 #define UVISOR_WAIT_FOREVER (0xFFFFFFFFUL)
 
 /* extern keyword */

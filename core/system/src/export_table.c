@@ -20,55 +20,94 @@
 #include "api/inc/vmpu_exports.h"
 #include "context.h"
 #include "halt.h"
+#include "vmpu.h"
 
-/* By default a maximum of 16 threads are allowed. This can only be overridden
- * by the porting engineer for the current platform. */
-#ifndef UVISOR_EXPORT_TABLE_THREADS_MAX_COUNT
-#define UVISOR_EXPORT_TABLE_THREADS_MAX_COUNT ((uint32_t) 16)
-#endif
+/* TODO Make this a bitmap to save some RAM. */
+static int thread_local_storage_allocation_table[UVISOR_MAX_BOXES][UVISOR_MAX_THREADS_PER_BOX];
 
-/* Per thread we store the pointer to the allocator and the process id that
- * this thread belongs to. */
-typedef struct {
-    void * allocator;
-    int process_id;
-} UvisorThreadContext;
-
-static UvisorThreadContext thread[UVISOR_EXPORT_TABLE_THREADS_MAX_COUNT];
-
-
-static int thread_ctx_valid(UvisorThreadContext * context)
+static UvisorThreadContext * thread_local_storage(void)
 {
-    /* Check if context pointer points into the array. */
-    if ((uint32_t) context < (uint32_t) &thread ||
-        ((uint32_t) &thread + sizeof(thread)) <= (uint32_t) context) {
-        return 0;
-    }
-    /* Check if the context is aligned exactly to a context. */
-    return (((uint32_t) context - (uint32_t) thread) % sizeof(UvisorThreadContext)) == 0;
-}
-
-static void * thread_create(int id, void * c)
-{
-    (void) id;
-    UvisorThreadContext * context = c;
     const UvisorBoxIndex * const index =
             (UvisorBoxIndex * const) *(__uvisor_config.uvisor_box_context);
-    /* Search for a free slot in the tasks meta data. */
-    uint32_t ii = 0;
-    for (; ii < UVISOR_EXPORT_TABLE_THREADS_MAX_COUNT; ii++) {
-        if (thread[ii].allocator == NULL) {
-            break;
+    return (UvisorThreadContext *) index->thread_local_storage;
+}
+
+/* Search through the list of boxes to find the context. Return -1 if not
+ * found. */
+static int box_id_for_context(UvisorThreadContext * context)
+{
+    int box_id;
+    for (box_id = 0; box_id < g_vmpu_box_count; box_id++) {
+        UvisorBoxIndex * box_index = (UvisorBoxIndex *) g_context_current_states[box_id].bss;
+        uint32_t context_start = (uint32_t) context;
+        uint32_t context_end = context_start + sizeof(*context);
+        uint32_t thread_local_storage_start = (uint32_t) box_index->thread_local_storage;
+        uint32_t thread_local_storage_end = thread_local_storage_start + sizeof(*box_index->thread_local_storage);
+        if (context_start >= thread_local_storage_start && context_end <= thread_local_storage_end) {
+            /* We found the box that this context belongs to. */
+            return box_id;
         }
     }
-    if (ii < UVISOR_EXPORT_TABLE_THREADS_MAX_COUNT) {
-        /* Remember the process id for this thread. */
-        thread[ii].process_id = g_active_box;
-        /* Fall back to the process heap if ctx is NULL. */
-        thread[ii].allocator = context ? context : index->box_heap;
-        return &thread[ii];
+
+    /* We didn't find the context in any boxes. */
+    return -1;
+}
+
+static int thread_ctx_valid(int box_id, UvisorThreadContext * context)
+{
+    UvisorBoxIndex * box_index = (UvisorBoxIndex *) g_context_current_states[box_id].bss;
+    UvisorThreadContext * storage = (UvisorThreadContext *) box_index->thread_local_storage;
+    /* Check if context pointer points into the array. */
+    int within_array = context >= storage && context < storage + UVISOR_MAX_THREADS_PER_BOX;
+
+    /* Check if the context is aligned exactly to a context. */
+    int aligned = (((uintptr_t) context - (uintptr_t) storage) % sizeof(*storage)) == 0;
+
+    return within_array && aligned;
+}
+
+static UvisorThreadContext * allocate_thread_local_storage(void)
+{
+    size_t i;
+
+    /* Search for a free slot in the box's thread local storage array. */
+    for (i = 0; i < UVISOR_MAX_THREADS_PER_BOX; i++) {
+        if (thread_local_storage_allocation_table[g_active_box][i] == 0) {
+            /* We found a free slot. Allocate the thread local storage. */
+            thread_local_storage_allocation_table[g_active_box][i] = 1;
+            return &thread_local_storage()[i];
+        }
     }
-    return context;
+
+    /* We did not find a free slot. There is no space left in the thread local
+     * storage array. */
+    return NULL;
+}
+
+static void free_thread_local_storage(UvisorThreadContext * context)
+{
+    size_t i = context - thread_local_storage();
+    thread_local_storage_allocation_table[g_active_box][i] = 1;
+}
+
+static void * thread_create(int id, void * allocator)
+{
+    const UvisorBoxIndex * const index =
+            (UvisorBoxIndex * const) *(__uvisor_config.uvisor_box_context);
+
+    /* Ignore the provided thread ID. */
+    (void) id;
+
+    UvisorThreadContext * context = allocate_thread_local_storage();
+    if (context) {
+        /* Assign the thread allocator. Fall back to the process heap if
+         * user-provided allocator is NULL. */
+        context->allocator = allocator ? allocator : index->box_heap;
+
+        return context;
+    }
+
+    return allocator;
 }
 
 static void thread_destroy(void * c)
@@ -79,9 +118,8 @@ static void thread_destroy(void * c)
     }
 
     /* Only if TID is valid and destruction status is zero. */
-    if (thread_ctx_valid(context) && context->allocator && (context->process_id == g_active_box)) {
-        /* Release this slot. */
-        context->allocator = NULL;
+    if (thread_ctx_valid(g_active_box, context) && context->allocator && (box_id_for_context(context) == g_active_box)) {
+        free_thread_local_storage(context);
     } else {
         HALT_ERROR(SANITY_CHECK_FAILED,
             "thread context (%08x) is invalid!\n",
@@ -97,16 +135,18 @@ static void thread_switch(void * c)
         return;
     }
 
+    int box_id = box_id_for_context(context);
+
     /* Only if TID is valid and the slot is used */
-    if (!thread_ctx_valid(context) || context->allocator == NULL) {
+    if (!thread_ctx_valid(box_id, context) || box_id == -1) {
         HALT_ERROR(SANITY_CHECK_FAILED,
             "thread context (%08x) is invalid!\n",
             context);
         return;
     }
     /* If the thread is inside another process, switch into it. */
-    if (context->process_id != g_active_box) {
-        context_switch_in(CONTEXT_SWITCH_UNBOUND_THREAD, context->process_id, 0, 0);
+    if (box_id != g_active_box) {
+        context_switch_in(CONTEXT_SWITCH_UNBOUND_THREAD, box_id, 0, 0);
     }
     /* Copy the thread allocator into the (new) box index. */
     /* Note: The value in index is updated by context_switch_in, or is already
