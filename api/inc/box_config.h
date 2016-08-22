@@ -22,6 +22,7 @@
 #include "api/inc/thread_local_storage_exports.h"
 #include <stddef.h>
 #include <stdint.h>
+#include <sys/reent.h>
 
 UVISOR_EXTERN const uint32_t __uvisor_mode;
 
@@ -34,6 +35,9 @@ UVISOR_EXTERN const uint32_t __uvisor_mode;
 
 #define UVISOR_SET_MODE_ACL(mode, acl_list) \
     UVISOR_SET_MODE_ACL_COUNT(mode, acl_list, UVISOR_ARRAY_COUNT(acl_list))
+
+#define UVISOR_ALIGN_SIZE(size) \
+    (((size) + 3U) & ~3U)
 
 #define UVISOR_SET_MODE_ACL_COUNT(mode, acl_list, acl_list_count) \
     uint8_t __attribute__((section(".keep.uvisor.bss.boxes"), aligned(32))) __reserved_stack[UVISOR_STACK_BAND_SIZE]; \
@@ -53,6 +57,7 @@ UVISOR_EXTERN const uint32_t __uvisor_mode;
             sizeof(uvisor_rpc_outgoing_result_queue_t), \
             sizeof(uvisor_rpc_fn_group_pool_t), \
             sizeof(uvisor_thread_local_storage_t), \
+            0, \
         }, \
         NULL, \
         NULL, \
@@ -72,14 +77,15 @@ UVISOR_EXTERN const uint32_t __uvisor_mode;
             UVISOR_STACK_SIZE_ROUND( \
                 ( \
                     (UVISOR_MIN_STACK(stack_size) + \
-                    (context_size) + \
-                    (__uvisor_box_heapsize) + \
-                    sizeof(RtxBoxIndex) + \
-                    sizeof(uvisor_rpc_outgoing_message_queue_t) + \
-                    sizeof(uvisor_rpc_incoming_message_queue_t) + \
-                    sizeof(uvisor_rpc_outgoing_result_queue_t) + \
-                    sizeof(uvisor_rpc_fn_group_pool_t) + \
-                    sizeof(uvisor_thread_local_storage_t) \
+                    UVISOR_ALIGN_SIZE(context_size) + \
+                    UVISOR_ALIGN_SIZE(__uvisor_box_heapsize) + \
+                    UVISOR_ALIGN_SIZE(sizeof(RtxBoxIndex)) + \
+                    UVISOR_ALIGN_SIZE(sizeof(uvisor_rpc_outgoing_message_queue_t)) + \
+                    UVISOR_ALIGN_SIZE(sizeof(uvisor_rpc_incoming_message_queue_t)) + \
+                    UVISOR_ALIGN_SIZE(sizeof(uvisor_rpc_outgoing_result_queue_t)) + \
+                    UVISOR_ALIGN_SIZE(sizeof(uvisor_rpc_fn_group_pool_t)) + \
+                    UVISOR_ALIGN_SIZE(sizeof(uvisor_thread_local_storage_t)) + \
+                    UVISOR_ALIGN_SIZE(sizeof(struct _reent)) \
                 ) \
             * 8) \
         / 6)]; \
@@ -97,6 +103,7 @@ UVISOR_EXTERN const uint32_t __uvisor_mode;
             sizeof(uvisor_rpc_outgoing_result_queue_t), \
             sizeof(uvisor_rpc_fn_group_pool_t), \
             sizeof(uvisor_thread_local_storage_t), \
+            sizeof(struct _reent), \
         }, \
         __uvisor_box_lib_config, \
         __uvisor_box_namespace, \

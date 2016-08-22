@@ -37,8 +37,8 @@ int uvisor_lib_init(void)
      * allowed would be a backdoor). */
     osRegisterForOsEvents(&export_table->os_event_observer);
 
-    extern void __uvisor_initialize_rpc_queues(void);
-    __uvisor_initialize_rpc_queues();
+    extern void __uvisor_initialize_insecure_box(void);
+    __uvisor_initialize_insecure_box();
 
     return 0;
 }
