@@ -17,6 +17,7 @@
 #include <uvisor.h>
 #include "semaphore.h"
 #include "api/inc/export_table_exports.h"
+#include "api/inc/rpc_gateway_exports.h"
 #include "api/inc/pool_queue_exports.h"
 #include "api/inc/rpc_exports.h"
 #include "api/inc/svc_exports.h"
@@ -140,6 +141,9 @@ static void wake_up_handlers_for_target(const TFN_Ptr function, int box_id)
 
 static int fetch_callee_box(const TFN_Ptr function)
 {
+    TRPCGateway * gateway = (TRPCGateway *)function;
+    (void) gateway;
+
     /* XXX We should pull this out of the gateway. But, we can search through all
      * the destinations for now until we do it right. */
     size_t box_id;
