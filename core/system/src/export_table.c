@@ -139,9 +139,9 @@ static void wake_up_handlers_for_target(const TFN_Ptr function, int box_id)
     }
 }
 
-static int fetch_callee_box(const TFN_Ptr function)
+static int fetch_callee_box(const uint32_t gateway_address)
 {
-    TRPCGateway * gateway = (TRPCGateway *)function;
+    TRPCGateway * gateway = (TRPCGateway *) gateway_address;
     (void) gateway;
 
     /* XXX We should pull this out of the gateway. But, we can search through all
@@ -243,7 +243,7 @@ static void drain_message_queue(void)
         uvisor_rpc_message_t * caller_msg = &caller_array[caller_slot];
 
         /* Look up the callee box. */
-        const int callee_box = fetch_callee_box(caller_msg->function);
+        const int callee_box = fetch_callee_box(caller_msg->gateway_address);
         if (callee_box <= 0) {
             put_it_back(caller_queue, caller_slot);
             continue;
