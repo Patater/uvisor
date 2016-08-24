@@ -64,7 +64,7 @@ typedef struct uvisor_rpc_message {
     uint32_t p2;
     uint32_t p3;
 
-    TFN_Ptr function;
+    uint32_t gateway_address;
 
     /* The box ID of the other box. For callers, this is the destination box
      * ID. For callees, this is the source box ID. */
