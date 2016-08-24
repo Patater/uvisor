@@ -285,7 +285,7 @@ static int query_for_fn_group(uvisor_pool_slot_t slot, void * context)
     return 0;
 }
 
-int rpc_fncall_waitfor(const TFN_Ptr fn_ptr_array[], size_t fn_count, uint32_t timeout_ms)
+int rpc_fncall_waitfor(const TFN_Ptr fn_ptr_array[], size_t fn_count, int * box_id_caller, uint32_t timeout_ms)
 {
     uvisor_rpc_fn_group_t * fn_group;
     uvisor_pool_slot_t msg_slot;
@@ -326,8 +326,15 @@ int rpc_fncall_waitfor(const TFN_Ptr fn_ptr_array[], size_t fn_count, uint32_t t
         return -2;
     }
 
-    /* Dispatch the RPC. */
     msg = &incoming_message_array()[msg_slot];
+
+    /* Save the calling box ID before the RPC target function is called, so that the RPC target function
+     * can read that variable to find out what box called it. */
+    if (box_id_caller) {
+        *box_id_caller = msg->other_box_id;
+    }
+
+    /* Dispatch the RPC. */
     msg->result = msg->function(msg->p0, msg->p1, msg->p2, msg->p3);
 
     msg->state = UVISOR_RPC_MESSAGE_STATE_DONE;
