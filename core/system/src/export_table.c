@@ -22,6 +22,7 @@
 #include "api/inc/rpc_exports.h"
 #include "api/inc/svc_exports.h"
 #include "api/inc/vmpu_exports.h"
+#include "api/inc/register_gateway.h"
 #include "context.h"
 #include "halt.h"
 #include "vmpu.h"
@@ -173,16 +174,37 @@ static int put_it_back(uvisor_pool_queue_t * queue, uvisor_pool_slot_t slot)
 /* Return true iff gateway is valid. */
 static int is_valid_rpc_gateway(const TRPCGateway * const gateway)
 {
-    /* as sanity (not security) check, box_ptr needs to point within the box
-     * config table to a box id less than g_vmpu_box_count. */
-    //.box_ptr  = (uint32_t) &box_name ## _cfg_ptr
-
     /* Gateway needs to be entirely in flash. */
-    /* Gateway needs to have good magic. */
-    /* Gateway needs good jmp instruction. */
-    /* Gateway needs to point to functions in flash (caller and target) */
+    uint32_t gateway_start = (uint32_t) gateway;
+    uint32_t gateway_end = gateway_start + sizeof(*gateway);
+    if (!vmpu_public_flash_addr(gateway_start) || !vmpu_public_flash_addr(gateway_end)) {
+        return 0;
+    }
 
-    /* XXX Not secure */
+    /* The callee box ID associated with the gateway must be valid. Gateways to
+     * box 0 are not possible. */
+    int box_id = callee_box_id(gateway);
+    if (box_id <= 0 || box_id >= g_vmpu_box_count) {
+        return 0;
+    }
+
+    /* Gateway needs to have good magic. */
+    if (gateway->magic != UVISOR_RPC_GATEWAY_MAGIC_ASYNC || gateway->magic != UVISOR_RPC_GATEWAY_MAGIC_SYNC) {
+        return 0;
+    }
+
+    /* Gateway needs good ldr_pc instruction. */
+    if (gateway->ldr_pc != LDR_PC_PC_IMM_OPCODE(__UVISOR_OFFSETOF(TRPCGateway, ldr_pc),
+                                                __UVISOR_OFFSETOF(TRPCGateway, caller))) {
+        return 0;
+    }
+
+    /* Gateway needs to point to functions in flash (caller and target) */
+    if (!vmpu_public_flash_addr(gateway->caller) || !vmpu_public_flash_addr(gateway->target)) {
+        return 0;
+    }
+
+    /* All checks passed. */
     return 1;
 }
 
@@ -282,10 +304,6 @@ static void drain_message_queue(void)
 
         /* Look up the callee box. */
         const int callee_box = callee_box_id(gateway);
-        if (callee_box <= 0) {
-            put_it_back(caller_queue, caller_slot);
-            continue;
-        }
 
         UvisorBoxIndex * callee_index = (UvisorBoxIndex *) g_context_current_states[callee_box].bss;
         uvisor_pool_queue_t * callee_queue = &callee_index->rpc_incoming_message_queue->todo_queue;
@@ -300,7 +318,6 @@ static void drain_message_queue(void)
             /* The callee queue is messed up. This shouldn't happen in a
              * non-malicious system. XXX Think what we want to do in this case. */
             HALT_ERROR(SANITY_CHECK_FAILED, "Callee's incoming (todo) queue is not valid");
-            put_it_back(caller_queue, caller_slot);
             continue;
         }
 
@@ -338,6 +355,7 @@ static void drain_message_queue(void)
                  * enqueue the slot, we'll have a hard time freeing it, since
                  * that requires the same lock. */
                 HALT_ERROR(SANITY_CHECK_FAILED, "We were able to get the callee RPC slot allocated, but couldn't enqueue the message.");
+                continue;
             }
 
             /* Poke anybody waiting on calls to this target function. If nobody
