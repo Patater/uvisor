@@ -360,5 +360,5 @@ int rpc_fncall_waitfor(const TFN_Ptr fn_ptr_array[], size_t fn_count, int * box_
     /* We woke up. Look for any RPC we can handle. */
     handled = handle_incoming_rpc(fn_group, box_id_caller);
 
-    return handled == 0 ? 0 : -1;
+    return handled == 1 ? 0 : -1;
 }
