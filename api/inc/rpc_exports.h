@@ -19,6 +19,7 @@
 
 #include "api/inc/pool_queue_exports.h"
 #include "api/inc/uvisor_semaphore_exports.h"
+#include "api/inc/rpc_gateway_exports.h"
 
 typedef uint32_t (*TFN_Ptr)(uint32_t, uint32_t, uint32_t, uint32_t);
 
@@ -64,7 +65,7 @@ typedef struct uvisor_rpc_message {
     uint32_t p2;
     uint32_t p3;
 
-    uint32_t gateway_address;
+    const TRPCGateway * gateway;
 
     /* The box ID of the other box. For callers, this is the destination box
      * ID. For callees, this is the source box ID. */

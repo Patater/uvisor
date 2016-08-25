@@ -19,7 +19,7 @@
 
 int uvisor_lib_init(void)
 {
-    TUvisorExportTable * export_table = uvisor_export_table();
+    TUvisorExportTable const * const export_table = uvisor_export_table();
 
     if (export_table->magic != UVISOR_EXPORT_MAGIC) {
         /* We couldn't find the magic. */

@@ -113,14 +113,14 @@ static void wake_up_handlers_for_target(const TFN_Ptr function, int box_id)
      * priority waiter already took care of handling the incoming RPC. */
     uvisor_pool_slot_t i;
     for (i = 0; i < fn_group_pool->num; i++) {
-        /* XXX It is possible that the slot has been allocated for the
-         * fn_group, but not yet initialized. */
         /* If the entry in the pool is allocated: */
         if (fn_group_pool->management_array[i].dequeued.state != UVISOR_POOL_SLOT_IS_FREE) {
             /* Look for the function in this function group. */
             uvisor_rpc_fn_group_t * fn_group = &fn_group_array[i];
 
-            /* If not ready, ignore. */
+            /* It is possible that the slot has been allocated for the
+             * fn_group, but not yet initialized. If the slot is not ready,
+             * ignore. */
             if (fn_group->state != UVISOR_RPC_FN_GROUP_STATE_READY) {
                 continue;
             }
@@ -139,15 +139,17 @@ static void wake_up_handlers_for_target(const TFN_Ptr function, int box_id)
     }
 }
 
-static int fetch_callee_box(const uint32_t gateway_address)
+static int fetch_callee_box(const TRPCGateway * gateway)
 {
-    TRPCGateway * gateway = (TRPCGateway *) gateway_address;
-    (void) gateway;
+    size_t box_id = (uint32_t *)gateway->box_ptr - __uvisor_config.cfgtbl_ptr_start;
 
-    /* XXX We should pull this out of the gateway. But, we can search through all
-     * the destinations for now until we do it right. */
-    size_t box_id;
+    /* as sanity (not security) check, box_ptr needs to point within the box
+     * config table to a box id less than g_vmpu_box_count. */
+    //.box_ptr  = (uint32_t) &box_name ## _cfg_ptr
 
+    return box_id;
+
+#if 0
     for (box_id = 1; box_id < g_vmpu_box_count; box_id++) {
         UvisorBoxIndex * box_index = (UvisorBoxIndex *) g_context_current_states[box_id].bss;
         uvisor_pool_t const * pool = &box_index->rpc_fn_group_pool->pool;
@@ -180,6 +182,7 @@ static int fetch_callee_box(const uint32_t gateway_address)
 
     /* We couldn't find the destination box. */
     return -1;
+#endif
 }
 
 static int put_it_back(uvisor_pool_queue_t * queue, uvisor_pool_slot_t slot)
@@ -199,6 +202,22 @@ static int put_it_back(uvisor_pool_queue_t * queue, uvisor_pool_slot_t slot)
      * time that could mess it up... */
 
      return status;
+}
+
+/* Return true iff gateway is valid. */
+static int is_valid_rpc_gateway(const TRPCGateway * const gateway)
+{
+    /* as sanity (not security) check, box_ptr needs to point within the box
+     * config table to a box id less than g_vmpu_box_count. */
+    //.box_ptr  = (uint32_t) &box_name ## _cfg_ptr
+
+    /* Gateway needs to be entirely in flash. */
+    /* Gateway needs to have good magic. */
+    /* Gateway needs good jmp instruction. */
+    /* Gateway needs to point to functions in flash (caller and target) */
+
+    /* XXX Not secure */
+    return 1;
 }
 
 static void drain_message_queue(void)
@@ -242,8 +261,19 @@ static void drain_message_queue(void)
 
         uvisor_rpc_message_t * caller_msg = &caller_array[caller_slot];
 
+        /* Validate the gateway */
+        const TRPCGateway * const gateway = caller_msg->gateway;
+        if (!is_valid_rpc_gateway(gateway)) {
+            /* Don't put it back. Move on to next items. */
+            /* When will it be freed? Maybe we have to free it here. */
+            /* This should never happen on a non-malicious system. */
+            /* XXX TODO Make this a debug-only halt */
+            HALT_ERROR(SANITY_CHECK_FAILED, "RPC gateway is not valid");
+            continue;
+        }
+
         /* Look up the callee box. */
-        const int callee_box = fetch_callee_box(caller_msg->gateway_address);
+        const int callee_box = fetch_callee_box(gateway);
         if (callee_box <= 0) {
             put_it_back(caller_queue, caller_slot);
             continue;
@@ -267,7 +297,7 @@ static void drain_message_queue(void)
             callee_msg->p1 = caller_msg->p1;
             callee_msg->p2 = caller_msg->p2;
             callee_msg->p3 = caller_msg->p3;
-            callee_msg->function = caller_msg->function;
+            callee_msg->gateway = caller_msg->gateway;
             /* Set the ID of the calling box in the message. */
             callee_msg->other_box_id = caller_box;
             callee_msg->cookie = caller_msg->cookie;
@@ -290,7 +320,7 @@ static void drain_message_queue(void)
             }
 
             /* Poke anybody waiting on calls to this target function. */
-            wake_up_handlers_for_target(callee_msg->function, callee_box);
+            wake_up_handlers_for_target((TFN_Ptr)gateway->target, callee_box);
         }
 
         /* If there was no room in the callee queue: */
