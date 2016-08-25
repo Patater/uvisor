@@ -64,7 +64,7 @@ static uvisor_rpc_fn_group_t * fn_group_array(void)
 /* Place a message into the outgoing queue. `timeout_ms` is how long to wait
  * for a slot in the outgoing queue before giving up. `msg_slot` is set to the
  * slot of the message that was allocated. Returns non-zero on failure. */
-static int send_outgoing_rpc(uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3, const TFN_Ptr fn, uint32_t timeout_ms,
+static int send_outgoing_rpc(uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3, const TRPCGateway * gateway, uint32_t timeout_ms,
                              uvisor_rpc_result_t * cookie)
 {
     static uint32_t shared_result_counter = 0;
@@ -89,7 +89,7 @@ static int send_outgoing_rpc(uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3,
     msg->p1 = p1;
     msg->p2 = p2;
     msg->p3 = p3;
-    msg->function = fn;
+    msg->gateway = gateway;
     msg->cookie = uvisor_result_build(counter, slot);
     msg->state = UVISOR_RPC_MESSAGE_STATE_READY_TO_SEND;
 
@@ -121,7 +121,7 @@ static void free_outgoing_msg(uvisor_pool_slot_t msg_slot)
     uvisor_pool_queue_free(outgoing_message_queue(), msg_slot);
 }
 
-uint32_t rpc_fncall_sync(uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3, const TFN_Ptr fn)
+uint32_t rpc_fncall_sync(uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3, const TRPCGateway * gateway)
 {
     int status;
     uint32_t result_value;
@@ -135,7 +135,7 @@ uint32_t rpc_fncall_sync(uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3, con
     do {
         /* Because this is the sync function, we use wait forever to wait for an
          * available message slot. */
-        status = send_outgoing_rpc(p0, p1, p2, p3, fn, UVISOR_WAIT_FOREVER, &cookie);
+        status = send_outgoing_rpc(p0, p1, p2, p3, gateway, UVISOR_WAIT_FOREVER, &cookie);
     } while (status);
     msg_slot = uvisor_result_slot(cookie);
 
@@ -157,14 +157,14 @@ uint32_t rpc_fncall_sync(uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3, con
 /* Start an asynchronous RPC. After this call successfully completes, the
  * caller can, at any time in any thread, wait on the result object to get the
  * result of the call. */
-uvisor_rpc_result_t rpc_fncall_async(uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3, const TFN_Ptr fn)
+uvisor_rpc_result_t rpc_fncall_async(uint32_t p0, uint32_t p1, uint32_t p2, uint32_t p3, const TRPCGateway * gateway)
 {
     int status;
     uvisor_rpc_result_t cookie;
 
     /* Don't wait any length of time for an outgoing message slot. If there is
      * no slot available, return immediately with a non-zero status. */
-    status = send_outgoing_rpc(p0, p1, p2, p3, fn, 0, &cookie);
+    status = send_outgoing_rpc(p0, p1, p2, p3, gateway, 0, &cookie);
     if (status) {
         return status;
     }
@@ -275,7 +275,7 @@ static int query_for_fn_group(uvisor_pool_slot_t slot, void * context)
 
     /* See if the target is for a function we can handle. */
     for (i = 0; i < query_context->fn_count; ++i) {
-        if (msg->function == query_context->fn_ptr_array[i]) {
+        if ((TFN_Ptr) msg->gateway->target == query_context->fn_ptr_array[i]) {
             /* Yes, we can handle this function call. */
             return 1;
         }
@@ -335,7 +335,8 @@ int rpc_fncall_waitfor(const TFN_Ptr fn_ptr_array[], size_t fn_count, int * box_
     }
 
     /* Dispatch the RPC. */
-    msg->result = msg->function(msg->p0, msg->p1, msg->p2, msg->p3);
+    TFN_Ptr fn = (TFN_Ptr) msg->gateway->target;
+    msg->result = fn(msg->p0, msg->p1, msg->p2, msg->p3);
 
     msg->state = UVISOR_RPC_MESSAGE_STATE_DONE;
 

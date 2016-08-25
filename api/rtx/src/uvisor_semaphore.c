@@ -1,5 +1,6 @@
 #include "api/inc/uvisor_semaphore_exports.h"
 #include "api/inc/uvisor_exports.h"
+#include "api/inc/halt_exports.h"
 #include "cmsis_os.h"
 #include <string.h>
 
