@@ -159,12 +159,13 @@ static int put_it_back(uvisor_pool_queue_t * queue, uvisor_pool_slot_t slot)
          * to lose messages due to not being able to put them back in
          * the queue. However, if we could dequeue the slot
          * we should have no trouble enqueuing the slot here. */
+        /* XXX TODO Make this a debug-only halt */
         HALT_ERROR(SANITY_CHECK_FAILED, "We were able to dequeue an RPC message, but weren't able to put the message back.");
     }
 
-    /* XXX Note that we don't have to modify data here of the message in the
-     * queue, since it'll still be valid. Nobody else will have run at the same
-     * time that could mess it up... */
+    /* Note that we don't have to modify the message in the queue, since it'll
+     * still be valid. Nobody else will have run at the same time that could
+     * have messed it up. */
 
      return status;
 }
@@ -185,40 +186,34 @@ static int is_valid_rpc_gateway(const TRPCGateway * const gateway)
     return 1;
 }
 
-static size_t box_bss_size(int box_id)
-{
-    const UvisorBoxConfig ** box_cfgtbl = (const UvisorBoxConfig **) __uvisor_config.cfgtbl_ptr_start;
-    const UvisorBoxConfig * config = box_cfgtbl[box_id];
-
-    if (box_id == 0) {
-        return (uint32_t) __uvisor_config.heap_end - (uint32_t) __uvisor_config.heap_start - config->index_size;
-    }
-
-    /* Use heap_size from box config table (not box index) because that's the
-     * real size of a box's BSS. The heap_size stored in the box index has been
-     * decremented by the size of the user context, and the size of any per-box
-     * structures (like the RPC queues). */
-    return config->heap_size;
-}
-
-static uint32_t box_bss_start_addr(int box_id)
-{
-    /* The box index is stored in the bottom of the box heap. The box heap is
-     * at the start of box BSS. So, the same way we determine the box index
-     * address, we can determine the start of the box BSS. */
-    return g_context_current_states[box_id].bss;
-}
-
 /* Return true if and only if the queue is entirely within the box specified by
  * the provided box_id. */
 static int is_valid_queue(uvisor_pool_queue_t * queue, int box_id)
 {
-    uint32_t bss_start = box_bss_start_addr(box_id);
-    uint32_t bss_end = bss_start + box_bss_size(box_id);
+    uint32_t bss_start = g_context_current_states[box_id].bss;
+    uint32_t bss_end = bss_start + g_context_current_states[box_id].bss_size;
+
     uint32_t queue_start = (uint32_t) queue;
     uint32_t queue_end = queue_start + sizeof(*queue);
+    int queue_is_valid = queue_start >= bss_start && queue_end <= bss_end;
 
-    return queue_start >= bss_start && queue_end <= bss_end;
+    uint32_t pool_start = (uint32_t) queue->pool;
+    uint32_t pool_end = pool_start + sizeof(*queue->pool);
+    int pool_is_valid = pool_start >= bss_start && pool_end <= bss_end;
+
+    /* XXX A malicious box could lie about its own pool size to make it pretend to
+     * fit within box bss. */
+    uint32_t man_array_start = (uint32_t) queue->pool->management_array;
+    uint32_t man_array_end = man_array_start + sizeof(*queue->pool->management_array) * queue->pool->num;
+    int man_array_is_valid = man_array_start >= bss_start && man_array_end <= bss_end;
+
+    /* XXX A malicious box could lie about its own pool size to make it pretend to
+     * fit within box bss. */
+    uint32_t array_start = (uint32_t) queue->pool->array;
+    uint32_t array_end = array_start + queue->pool->stride * queue->pool->num;
+    int array_is_valid = array_start >= bss_start && array_end <= bss_end;
+
+    return queue_is_valid && pool_is_valid && man_array_is_valid && array_is_valid;
 }
 
 static void drain_message_queue(void)
@@ -230,6 +225,18 @@ static void drain_message_queue(void)
     uvisor_rpc_message_t * caller_array = (uvisor_rpc_message_t *) caller_queue->pool->array;
     int caller_box = g_active_box;
     int first_slot = -1;
+
+    /* Verify that the caller queue is entirely in caller box BSS. We check the
+     * entire queue instead of just the message we are interested in, because
+     * we want to validate the queue before we attempt any operations on it,
+     * like dequeing. */
+    if (!is_valid_queue(caller_queue, caller_box))
+    {
+        /* The caller queue is messed up. This shouldn't happen in a
+         * non-malicious system. XXX Think what we want to do in this case. */
+        HALT_ERROR(SANITY_CHECK_FAILED, "Caller's outgoing queue is not valid");
+        return;
+    }
 
     /* For each message in the queue: */
     do {
@@ -283,6 +290,18 @@ static void drain_message_queue(void)
         UvisorBoxIndex * callee_index = (UvisorBoxIndex *) g_context_current_states[callee_box].bss;
         uvisor_pool_queue_t * callee_queue = &callee_index->rpc_incoming_message_queue->todo_queue;
         uvisor_rpc_message_t * callee_array = (uvisor_rpc_message_t *) callee_queue->pool->array;
+
+        /* Verify that the callee queue is entirely in callee box BSS. We check the
+         * entire queue instead of just the message we are interested in, because
+         * we want to validate the queue before we attempt any operations on it,
+         * like allocating. */
+        if (!is_valid_queue(callee_queue, callee_box))
+        {
+            /* The caller queue is messed up. This shouldn't happen in a
+             * non-malicious system. XXX Think what we want to do in this case. */
+            HALT_ERROR(SANITY_CHECK_FAILED, "Callee's incoming queue is not valid");
+            return;
+        }
 
         /* Place the message into the callee box queue. */
         uvisor_pool_slot_t callee_slot = uvisor_pool_queue_try_allocate(callee_queue);
@@ -443,6 +462,7 @@ static void drain_result_queue(void)
             /* XXX The semaphore was bad. We shouldn't really bring down the entire
              * system if one box messes up its own semaphore. In a
              * non-malicious system, this should never happen. */
+            /* XXX TODO Make this a debug-only halt */
             HALT_ERROR(SANITY_CHECK_FAILED, "We couldn't semaphore.");
         }
     } while (1);
