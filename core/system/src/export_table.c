@@ -98,9 +98,12 @@ static void thread_destroy(void * c)
     }
 }
 
-/* Wake up all the potential handlers for this RPC target. */
-static void wake_up_handlers_for_target(const TFN_Ptr function, int box_id)
+/* Wake up all the potential handlers for this RPC target. Return number of
+ * handlers posted to. */
+static int wake_up_handlers_for_target(const TFN_Ptr function, int box_id)
 {
+    int num_posted = 0;
+
     UvisorBoxIndex * index = (UvisorBoxIndex *) g_context_current_states[box_id].bss;
     uvisor_pool_t * fn_group_pool = &index->rpc_fn_group_pool->pool;
     uvisor_rpc_fn_group_t * fn_group_array = (uvisor_rpc_fn_group_t *) fn_group_pool->array;
@@ -133,10 +136,13 @@ static void wake_up_handlers_for_target(const TFN_Ptr function, int box_id)
                 if (fn_ptr_array[j] == function) {
                     /* Wake up the waiter. */
                     semaphore_post(&fn_group->semaphore);
+                    ++num_posted;
                 }
             }
         }
     }
+
+    return num_posted;
 }
 
 static int fetch_callee_box(const TRPCGateway * gateway)
