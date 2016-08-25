@@ -297,10 +297,11 @@ static void drain_message_queue(void)
          * like allocating. */
         if (!is_valid_queue(callee_queue, callee_box))
         {
-            /* The caller queue is messed up. This shouldn't happen in a
+            /* The callee queue is messed up. This shouldn't happen in a
              * non-malicious system. XXX Think what we want to do in this case. */
-            HALT_ERROR(SANITY_CHECK_FAILED, "Callee's incoming queue is not valid");
-            return;
+            HALT_ERROR(SANITY_CHECK_FAILED, "Callee's incoming (todo) queue is not valid");
+            put_it_back(caller_queue, caller_slot);
+            continue;
         }
 
         /* Place the message into the callee box queue. */
@@ -369,6 +370,18 @@ static void drain_result_queue(void)
 
     int callee_box = g_active_box;
 
+    /* Verify that the callee queue is entirely in caller box BSS. We check the
+     * entire queue instead of just the message we are interested in, because
+     * we want to validate the queue before we attempt any operations on it,
+     * like dequeing. */
+    if (!is_valid_queue(callee_queue, callee_box))
+    {
+        /* The callee queue is messed up. This shouldn't happen in a
+         * non-malicious system. XXX Think what we want to do in this case. */
+        HALT_ERROR(SANITY_CHECK_FAILED, "Callee's incoming (done) queue is not valid");
+        return;
+    }
+
     /* For each message in the queue: */
     do {
         uvisor_pool_slot_t callee_slot;
@@ -396,11 +409,19 @@ static void drain_result_queue(void)
         UvisorBoxIndex * caller_index = (UvisorBoxIndex *) g_context_current_states[caller_box].bss;
         uvisor_pool_queue_t * caller_queue = &caller_index->rpc_outgoing_message_queue->queue;
         uvisor_rpc_message_t * caller_array = (uvisor_rpc_message_t *) caller_queue->pool->array;
-        uvisor_rpc_message_t * caller_msg = &caller_array[caller_slot];
 
-        /* FIXME Verify that the callee box message is in callee box bss.
-         * Verify that the destination box message is in destination box bss.
-         * */
+        /* Verify that the caller queue is entirely in caller box BSS. We check the
+         * entire queue instead of just the message we are interested in, because
+         * we want to validate the queue before we attempt any operations on it. */
+        if (!is_valid_queue(caller_queue, caller_box))
+        {
+            /* The caller queue is messed up. This shouldn't happen in a
+             * non-malicious system. XXX Think what we want to do in this case. */
+            HALT_ERROR(SANITY_CHECK_FAILED, "Caller's outgoing queue is not valid");
+            continue;
+        }
+
+        uvisor_rpc_message_t * caller_msg = &caller_array[caller_slot];
 
         /* Verify that the caller box is waiting for the callee box to complete
          * the RPC in this slot. */
