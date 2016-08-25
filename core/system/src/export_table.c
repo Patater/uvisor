@@ -145,50 +145,9 @@ static int wake_up_handlers_for_target(const TFN_Ptr function, int box_id)
     return num_posted;
 }
 
-static int fetch_callee_box(const TRPCGateway * gateway)
+static int callee_box_id(const TRPCGateway * gateway)
 {
-    size_t box_id = (uint32_t *)gateway->box_ptr - __uvisor_config.cfgtbl_ptr_start;
-
-    /* as sanity (not security) check, box_ptr needs to point within the box
-     * config table to a box id less than g_vmpu_box_count. */
-    //.box_ptr  = (uint32_t) &box_name ## _cfg_ptr
-
-    return box_id;
-
-#if 0
-    for (box_id = 1; box_id < g_vmpu_box_count; box_id++) {
-        UvisorBoxIndex * box_index = (UvisorBoxIndex *) g_context_current_states[box_id].bss;
-        uvisor_pool_t const * pool = &box_index->rpc_fn_group_pool->pool;
-        uvisor_rpc_fn_group_t const * array = pool->array;
-
-        uvisor_pool_slot_t i;
-        for (i = 0; i < pool->num; i++) {
-            /* If the entry in the pool is allocated: */
-            if (pool->management_array[i].dequeued.state != UVISOR_POOL_SLOT_IS_FREE) {
-                /* Look for the function in this function group. */
-                const uvisor_rpc_fn_group_t * fn_group = &array[i];
-
-                /* If not ready, ignore. */
-                if (fn_group->state != UVISOR_RPC_FN_GROUP_STATE_READY) {
-                    continue;
-                }
-
-                TFN_Ptr const * fn_ptr_array = fn_group->fn_ptr_array;
-                uvisor_pool_slot_t j;
-
-                for (j = 0; j < fn_group->fn_count; j++) {
-                    /* If function is found: */
-                    if (fn_ptr_array[j] == function) {
-                        return box_id;
-                    }
-                }
-            }
-        }
-    }
-
-    /* We couldn't find the destination box. */
-    return -1;
-#endif
+    return (uint32_t *)gateway->box_ptr - __uvisor_config.cfgtbl_ptr_start;
 }
 
 static int put_it_back(uvisor_pool_queue_t * queue, uvisor_pool_slot_t slot)
@@ -279,7 +238,7 @@ static void drain_message_queue(void)
         }
 
         /* Look up the callee box. */
-        const int callee_box = fetch_callee_box(gateway);
+        const int callee_box = callee_box_id(gateway);
         if (callee_box <= 0) {
             put_it_back(caller_queue, caller_slot);
             continue;
@@ -325,7 +284,11 @@ static void drain_message_queue(void)
                 HALT_ERROR(SANITY_CHECK_FAILED, "We were able to get the callee RPC slot allocated, but couldn't enqueue the message.");
             }
 
-            /* Poke anybody waiting on calls to this target function. */
+            /* Poke anybody waiting on calls to this target function. If nobody
+             * is waiting, the item will remain in the incoming queue. The
+             * first time a rpc_fncall_waitfor is called for a function group,
+             * rpc_fncall_waitfor will check to see if there are any messages
+             * it can handle from before the function group existed. */
             wake_up_handlers_for_target((TFN_Ptr)gateway->target, callee_box);
         }
 
