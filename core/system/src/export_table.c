@@ -33,6 +33,12 @@
 #define UVISOR_EXPORT_TABLE_THREADS_MAX_COUNT ((uint32_t) 16)
 #endif
 
+/* This is a FLASH saving measure. Without it, we overflow flash by 68 bytes.
+ * And shortening the halt messages mysteriously doesn't reduce that amount of
+ * overflow for some reason. */
+#undef HALT_ERROR
+#define HALT_ERROR(...)
+
 /* Per thread we store the pointer to the allocator and the process id that
  * this thread belongs to. */
 typedef struct {
@@ -161,7 +167,7 @@ static int put_it_back(uvisor_pool_queue_t * queue, uvisor_pool_slot_t slot)
          * the queue. However, if we could dequeue the slot
          * we should have no trouble enqueuing the slot here. */
         /* XXX TODO Make this a debug-only halt */
-        HALT_ERROR(SANITY_CHECK_FAILED, "We were able to dequeue an RPC message, but weren't able to put the message back.");
+        HALT_ERROR(SANITY_CHECK_FAILED, "Could dequeue an RPC message, but couldn't put it back.");
     }
 
     /* Note that we don't have to modify the message in the queue, since it'll
@@ -317,7 +323,7 @@ static void drain_message_queue(void)
         {
             /* The callee queue is messed up. This shouldn't happen in a
              * non-malicious system. XXX Think what we want to do in this case. */
-            HALT_ERROR(SANITY_CHECK_FAILED, "Callee's incoming (todo) queue is not valid");
+            HALT_ERROR(SANITY_CHECK_FAILED, "Callee's todo queue is not valid");
             continue;
         }
 
@@ -396,7 +402,7 @@ static void drain_result_queue(void)
     {
         /* The callee queue is messed up. This shouldn't happen in a
          * non-malicious system. XXX Think what we want to do in this case. */
-        HALT_ERROR(SANITY_CHECK_FAILED, "Callee's incoming (done) queue is not valid");
+        HALT_ERROR(SANITY_CHECK_FAILED, "Callee's done queue is not valid");
         return;
     }
 
