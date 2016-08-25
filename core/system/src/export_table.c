@@ -177,7 +177,7 @@ static int is_valid_rpc_gateway(const TRPCGateway * const gateway)
     /* Gateway needs to be entirely in flash. */
     uint32_t gateway_start = (uint32_t) gateway;
     uint32_t gateway_end = gateway_start + sizeof(*gateway);
-    if (!vmpu_public_flash_addr(gateway_start) || !vmpu_public_flash_addr(gateway_end)) {
+    if (!(vmpu_public_flash_addr(gateway_start) && vmpu_public_flash_addr(gateway_end))) {
         return 0;
     }
 
@@ -189,7 +189,7 @@ static int is_valid_rpc_gateway(const TRPCGateway * const gateway)
     }
 
     /* Gateway needs to have good magic. */
-    if (gateway->magic != UVISOR_RPC_GATEWAY_MAGIC_ASYNC || gateway->magic != UVISOR_RPC_GATEWAY_MAGIC_SYNC) {
+    if (!(gateway->magic == UVISOR_RPC_GATEWAY_MAGIC_ASYNC || gateway->magic == UVISOR_RPC_GATEWAY_MAGIC_SYNC)) {
         return 0;
     }
 
@@ -200,7 +200,7 @@ static int is_valid_rpc_gateway(const TRPCGateway * const gateway)
     }
 
     /* Gateway needs to point to functions in flash (caller and target) */
-    if (!vmpu_public_flash_addr(gateway->caller) || !vmpu_public_flash_addr(gateway->target)) {
+    if (!(vmpu_public_flash_addr(gateway->caller) && vmpu_public_flash_addr(gateway->target))) {
         return 0;
     }
 
