@@ -185,6 +185,42 @@ static int is_valid_rpc_gateway(const TRPCGateway * const gateway)
     return 1;
 }
 
+static size_t box_bss_size(int box_id)
+{
+    const UvisorBoxConfig ** box_cfgtbl = (const UvisorBoxConfig **) __uvisor_config.cfgtbl_ptr_start;
+    const UvisorBoxConfig * config = box_cfgtbl[box_id];
+
+    if (box_id == 0) {
+        return (uint32_t) __uvisor_config.heap_end - (uint32_t) __uvisor_config.heap_start - config->index_size;
+    }
+
+    /* Use heap_size from box config table (not box index) because that's the
+     * real size of a box's BSS. The heap_size stored in the box index has been
+     * decremented by the size of the user context, and the size of any per-box
+     * structures (like the RPC queues). */
+    return config->heap_size;
+}
+
+static uint32_t box_bss_start_addr(int box_id)
+{
+    /* The box index is stored in the bottom of the box heap. The box heap is
+     * at the start of box BSS. So, the same way we determine the box index
+     * address, we can determine the start of the box BSS. */
+    return g_context_current_states[box_id].bss;
+}
+
+/* Return true if and only if the queue is entirely within the box specified by
+ * the provided box_id. */
+static int is_valid_queue(uvisor_pool_queue_t * queue, int box_id)
+{
+    uint32_t bss_start = box_bss_start_addr(box_id);
+    uint32_t bss_end = bss_start + box_bss_size(box_id);
+    uint32_t queue_start = (uint32_t) queue;
+    uint32_t queue_end = queue_start + sizeof(*queue);
+
+    return queue_start >= bss_start && queue_end <= bss_end;
+}
+
 static void drain_message_queue(void)
 {
     /* XXX This implementation is dumb and simple and slow and not secure. */
