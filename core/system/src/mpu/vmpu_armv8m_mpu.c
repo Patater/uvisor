@@ -20,12 +20,35 @@
 
 int vmpu_is_region_size_valid(uint32_t size)
 {
-    return 0;
+    /* Align size to 32B. */
+    uint32_t const masked_size = size & ~31UL;
+    if (masked_size < 32 || (1 << 29) < masked_size) {
+        /* 2^5 == 32, which is the minimum region size. */
+        /* 2^29 == 512M, which is the maximum region size. */
+        return 0;
+    }
+    /* There is no rounding, we only care about an exact match. */
+    return (masked_size == size);
 }
 
 uint32_t vmpu_round_up_region(uint32_t addr, uint32_t size)
 {
-    return 0;
+    if (!vmpu_is_region_size_valid(size)) {
+        /* Region size must be valid. */
+        return 0;
+    }
+    /* Alignment is always 32B. */
+    const uint32_t mask = 31;
+
+    /* Adding the mask can overflow. */
+    const uint32_t rounded_addr = addr + mask;
+    /* Check for overflow. */
+    if (rounded_addr < addr) {
+        /* This means the address was too large to align. */
+        return 0;
+    }
+    /* Mask the rounded address to get the aligned address. */
+    return (rounded_addr & ~mask);
 }
 
 uint8_t vmpu_region_bits(uint32_t size)
