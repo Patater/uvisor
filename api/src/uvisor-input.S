@@ -104,7 +104,7 @@ uvisor_config:
     .long __uvisor_sram_start;
     .long __uvisor_sram_end;
 
-    /* Privileged system IRQ hooks */
+    /* Privileged system hooks */
     .long __uvisor_priv_sys_hooks
 
     /* Functions provided by uVisor Lib for use by uVisor in unprivileged mode
