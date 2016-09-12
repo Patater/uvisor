@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 #include <uvisor.h>
+#include "export_table.h"
 #include "debug.h"
 #include "svc.h"
 #include "unvic.h"
@@ -143,6 +144,9 @@ UVISOR_NOINLINE void uvisor_init_post(void)
 
     /* Init SVC call interface. */
     svc_init();
+
+    /* Check the export table. */
+    sanity_check_export_table();
 
     /* Load privileged system hooks. */
     load_priv_sys_hooks();
