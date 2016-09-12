@@ -114,4 +114,11 @@ SECTIONS
         __heap_end__ = ALIGN(32);
         __stack_start__ = .;
     } > RAM
+
+    /DISCARD/ :
+    {
+        *(.rel*)
+        *(.igot*)
+        *(.iplt*)
+    }
 }
