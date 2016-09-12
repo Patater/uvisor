@@ -586,3 +586,19 @@ const TUvisorExportTable __uvisor_export_table = {
     },
     .size = sizeof(TUvisorExportTable)
 };
+
+void sanity_check_export_table(void)
+{
+    DPRINTF("__uvisor_export_table: 0x%08x\r\n", __uvisor_export_table);
+    if (__uvisor_export_table.magic != UVISOR_EXPORT_MAGIC || __uvisor_export_table.version != UVISOR_EXPORT_VERSION) {
+        /* This shouldn't happen unless we messed up the linker somehow. We
+         * should have full control over our own export table, within the
+         * uVisor binary. The problem might happen if the app puts our export
+         * table in the wrong place (due to linker bugs). */
+        HALT_ERROR(SANITY_CHECK_FAILED,
+            "__uvisor_export_table (0x%08x) not valid\n",
+            __uvisor_export_table
+        );
+        return;
+    }
+}
