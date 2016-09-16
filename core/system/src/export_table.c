@@ -216,24 +216,37 @@ static int is_valid_queue(uvisor_pool_queue_t * queue, int box_id)
     uint32_t queue_start = (uint32_t) queue;
     uint32_t queue_end = queue_start + sizeof(*queue);
     int queue_is_valid = queue_start >= bss_start && queue_end <= bss_end;
+    if (!queue_is_valid) {
+        return 0;
+    }
 
     uint32_t pool_start = (uint32_t) queue->pool;
     uint32_t pool_end = pool_start + sizeof(*queue->pool);
     int pool_is_valid = pool_start >= bss_start && pool_end <= bss_end;
+    if (!pool_is_valid) {
+        return 0;
+    }
 
     /* XXX A malicious box could lie about its own pool size to make it pretend to
      * fit within box bss. */
     uint32_t man_array_start = (uint32_t) queue->pool->management_array;
     uint32_t man_array_end = man_array_start + sizeof(*queue->pool->management_array) * queue->pool->num;
     int man_array_is_valid = man_array_start >= bss_start && man_array_end <= bss_end;
+    if (!man_array_is_valid) {
+        return 0;
+    }
 
     /* XXX A malicious box could lie about its own pool size to make it pretend to
      * fit within box bss. */
     uint32_t array_start = (uint32_t) queue->pool->array;
     uint32_t array_end = array_start + queue->pool->stride * queue->pool->num;
     int array_is_valid = array_start >= bss_start && array_end <= bss_end;
+    if (!array_is_valid) {
+        return 0;
+    }
 
-    return queue_is_valid && pool_is_valid && man_array_is_valid && array_is_valid;
+    /* We made it through all the checks. */
+    return 1;
 }
 
 static void drain_message_queue(void)
