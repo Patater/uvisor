@@ -20,6 +20,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
+#include <halt.h>
 
 /* The platform configuration file must be included first. */
 #include "config.h"
@@ -58,7 +59,7 @@ typedef void (*UnprivilegedBoxEntry)(void);
 #else /*NDEBUG*/
 #define DPRINTF dprintf
 #define assert(x) if(!(x)){dprintf("HALTED(%s:%i): assert(%s)\n",\
-                                   __FILE__, __LINE__, #x);while(1);}
+                                   __FILE__, __LINE__, #x);halt(ASSERTION_FAILED);}
 #endif/*NDEBUG*/
 
 #ifdef  CHANNEL_DEBUG
