@@ -143,20 +143,13 @@ void page_allocator_init(void * const heap_start, void * const heap_end, const u
     g_page_map_shift -= (g_page_head_end_rounded - (uint32_t) g_page_heap_end) / g_page_size;
 
     DPRINTF(
-        "uvisor_page_init:\n"
-        ".page_heap start 0x%08x\n"
-        ".page_heap end   0x%08x\n"
-        ".page_heap end r 0x%08x\n"
-        ".page_heap shift adjustment %u -> %u\n"
-        ".page_heap available %ukB split into %u pages of %ukB\n\n",
+        "page heap: [0x%08x, 0x%08x] %ukB -> %u %ukB pages\r\n",
             (unsigned int) g_page_heap_start,
             (unsigned int) g_page_heap_end,
-            (unsigned int) g_page_head_end_rounded,
-            (unsigned int) (UVISOR_PAGE_MAP_COUNT * 32 - g_page_count_total),
-            (unsigned int) g_page_map_shift,
             (unsigned int) (g_page_count_free * g_page_size / 1024),
             (unsigned int) g_page_count_total,
-            (unsigned int) (g_page_size / 1024));
+            (unsigned int) (g_page_size / 1024)
+    );
 
     /* Force a reset of owner and usage page maps. */
     memset(g_page_owner_map, 0, sizeof(g_page_owner_map));
