@@ -39,7 +39,7 @@
 /* Memory boundaries */
 #define FLASH_ORIGIN 0x0
 #define FLASH_OFFSET 0x400
-#define SRAM_ORIGIN  0x20000000
+#define SRAM_ORIGIN  0x07000000 // Bullshit fun! (Use upper half of "Code memory" for RAM on Castor because broken!)
 #define SRAM_OFFSET  0x400
 
 /*******************************************************************************
