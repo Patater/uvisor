@@ -132,14 +132,38 @@ void vmpu_sys_mux_handler(uint32_t lr, uint32_t msp)
     {
         case MemoryManagement_IRQn:
             /* currently we only support recovery from unprivileged mode */
-            if(lr & 0x4)
+            /* XXX We hard fault if we try to read from the stack if the mem
+             * manage fault is an unstacking one. So, how do we tell that the
+             * error was an unstacking one before we try to recover (or even
+             * look at the pc)? */
+            fault_status = VMPU_SCB_MMFSR;
+            if (fault_status & 0x18) /* If we are having an unstacking fault, we can't read the pc
+            at fault. */
+            {
+                /* I swear she was 0x18... */
+
+                // NO! pc = vmpu_unpriv_uint32_read(psp + (6 * 4));
+                /* backup fault address and status */
+                fault_addr = SCB->MMFAR;
+
+                /* check if the fault is an MPU fault */
+                if (vmpu_fault_recovery_mpu(0x0, psp, psp, 0x82)) {
+                    VMPU_SCB_MMFSR = fault_status;
+                    return;
+                }
+
+                /* if recovery was not successful, throw an error and halt */
+                DEBUG_FAULT(FAULT_MEMMANAGE, lr, psp);
+                VMPU_SCB_MMFSR = fault_status;
+                HALT_ERROR(PERMISSION_DENIED, "Unrecoverable stacking error");
+            }
+            else if(lr & 0x4) /* If we are return to threaded (unpriv) mode */
             {
                 /* pc at fault */
                 pc = vmpu_unpriv_uint32_read(psp + (6 * 4));
 
                 /* backup fault address and status */
                 fault_addr = SCB->MMFAR;
-                fault_status = VMPU_SCB_MMFSR;
 
                 /* check if the fault is an MPU fault */
                 if (vmpu_fault_recovery_mpu(pc, psp, fault_addr, fault_status)) {
