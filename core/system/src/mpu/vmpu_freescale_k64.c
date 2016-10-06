@@ -82,21 +82,33 @@ void vmpu_sys_mux_handler(uint32_t lr, uint32_t msp)
             /* note: all recovery functions update the stacked stack pointer so
              * that exception return points to the correct instruction */
 
-            /* currently we only support recovery from unprivileged mode */
-            if(lr & 0x4)
-            {
-                /* pc at fault */
-                pc = vmpu_unpriv_uint32_read(psp + (6 * 4));
-
-                /* backup fault address and status */
-                fault_addr = SCB->BFAR;
+            /* Currently, we only support recovery from unprivileged mode. */
+            if (lr & 0x4) {
                 fault_status = VMPU_SCB_BFSR;
+
+                /* If we are having an unstacking fault, we can't read the pc
+                 * at fault. */
+                if (fault_status & 0x18) {
+                    /* fake pc */
+                    pc = 0x0;
+
+                    /* The stack pointer is at fault. BFAR doesn't contain a
+                     * valid fault address. XXX or does it? */
+                    fault_addr = psp;
+                } else {
+                    /* pc at fault */
+                    pc = vmpu_unpriv_uint32_read(psp + (6 * 4));
+
+                    /* backup fault address and status */
+                    fault_addr = SCB->BFAR;
+                }
 
                 /* check if the fault is an MPU fault */
                 int slave_port = vmpu_fault_get_slave_port();
                 if (slave_port >= 0) {
                     /* If the fault comes from the MPU module, we don't use the
                      * bus fault syndrome register, but the MPU one. */
+                    /*XXX check if this is good or not for unstacking faults */
                     fault_addr = MPU->SP[slave_port].EAR;
 
                     /* Check if we can recover from the MPU fault. */

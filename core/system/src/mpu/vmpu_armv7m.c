@@ -91,8 +91,8 @@ static int vmpu_fault_recovery_mpu(uint32_t pc, uint32_t sp, uint32_t fault_addr
     const MpuRegion *region;
     uint8_t mask, index, page;
 
-    /* no recovery possible if the MPU syndrome register is not valid */
-    if (fault_status != 0x82) {
+    /* No recovery is possible if the MPU syndrome register is not valid. */
+    if (!((fault_status == 0x82) || (fault_status & 0x18))) {
         return 0;
     }
 
@@ -131,15 +131,26 @@ void vmpu_sys_mux_handler(uint32_t lr, uint32_t msp)
     switch(ipsr)
     {
         case MemoryManagement_IRQn:
-            /* currently we only support recovery from unprivileged mode */
-            if(lr & 0x4)
-            {
-                /* pc at fault */
-                pc = vmpu_unpriv_uint32_read(psp + (6 * 4));
-
-                /* backup fault address and status */
-                fault_addr = SCB->MMFAR;
+            /* Currently, we only support recovery from unprivileged mode. */
+            if (lr & 0x4) {
                 fault_status = VMPU_SCB_MMFSR;
+
+                /* If we are having an unstacking fault, we can't read the pc
+                 * at fault. */
+                if (fault_status & 0x18) {
+                    /* fake pc */
+                    pc = 0x0;
+
+                    /* The stack pointer is at fault. MMFAR doesn't contain a
+                     * valid fault address. */
+                    fault_addr = psp;
+                } else {
+                    /* pc at fault */
+                    pc = vmpu_unpriv_uint32_read(psp + (6 * 4));
+
+                    /* backup fault address and status */
+                    fault_addr = SCB->MMFAR;
+                }
 
                 /* check if the fault is an MPU fault */
                 if (vmpu_fault_recovery_mpu(pc, psp, fault_addr, fault_status)) {
