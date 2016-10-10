@@ -210,11 +210,13 @@ void vmpu_sys_mux_handler(uint32_t lr, uint32_t msp)
             break;
 
         case PendSV_IRQn:
-            HALT_ERROR(NOT_IMPLEMENTED, "No PendSV IRQ hook registered");
+            // No PendSV IRQ hook registered
+            halt(NOT_IMPLEMENTED);
             break;
 
         case SysTick_IRQn:
-            HALT_ERROR(NOT_IMPLEMENTED, "No SysTick IRQ hook registered");
+            // No SysTick IRQ hook registered
+            halt(NOT_IMPLEMENTED);
             break;
 
         default:
