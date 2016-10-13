@@ -387,18 +387,24 @@ uint32_t vmpu_mpu_set_static_acl(uint8_t index, uint32_t start, uint32_t size,
     return rounded_size;
 }
 
+static void vmpu_mpu_invalidate_slot(uint8_t slot)
+{
+    /* We need to make sure that we disable an enabled MPU region before any
+     * other modification, hence we cannot select the MPU region using the
+     * region number field in the RBAR register. */
+    /* XXX Why? */
+    MPU->RNR = slot;
+    MPU->RASR = 0;
+    MPU->RBAR = 0;
+    g_mpu_priority[slot] = 0;
+}
+
 void vmpu_mpu_invalidate(void)
 {
     g_mpu_slot = ARMv7M_MPU_REGIONS_STATIC;
     uint8_t slot = ARMv7M_MPU_REGIONS_STATIC;
     while (slot < ARMv7M_MPU_REGIONS_MAX) {
-        /* We need to make sure that we disable an enabled MPU region before any
-         * other modification, hence we cannot select the MPU region using the
-         * region number field in the RBAR register. */
-        MPU->RNR = slot;
-        MPU->RASR = 0;
-        MPU->RBAR = 0;
-        g_mpu_priority[slot] = 0;
+        vmpu_mpu_invalidate_slot(slot);
         slot++;
     }
 }
@@ -407,6 +413,38 @@ bool vmpu_mpu_push(const MpuRegion * const region, uint8_t priority)
 {
     if (!priority) priority = 1;
 
+    const uint8_t start_slot = g_mpu_slot;
+    uint8_t viable_slot = start_slot;
+
+    do {
+        if (++g_mpu_slot > ARMv7M_MPU_REGIONS_MAX) {
+            g_mpu_slot = ARMv7M_MPU_REGIONS_STATIC;
+        }
+
+        if (g_mpu_priority[g_mpu_slot] < priority) {
+            /* We can place this region in here. */
+            MPU->RBAR = MPU_RBAR(g_mpu_slot, region->start);
+            MPU->RASR = region->config;
+            g_mpu_priority[g_mpu_slot] = priority;
+            return true;
+        }
+        viable_slot = g_mpu_slot;
+    }
+    while (g_mpu_slot != start_slot);
+
+    /* We did not find a slot with a lower priority, so just take the next
+     * position that does not have the highest priority. */
+    MPU->RBAR = MPU_RBAR(viable_slot, region->start);
+    MPU->RASR = region->config;
+    g_mpu_priority[viable_slot] = priority;
+
+    return true;
+}
+
+bool vmpu_mpu_remove(const MpuRegion * const region)
+{
+    /* Find the slot for this region. */
+    /* XXX How about just invalidating a subregion and not the whole region? */
     const uint8_t start_slot = g_mpu_slot;
     uint8_t viable_slot = start_slot;
 

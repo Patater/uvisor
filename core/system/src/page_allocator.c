@@ -301,3 +301,49 @@ int page_allocator_free(const UvisorPageTable * const table)
     UVISOR_PAGE_ALLOCATOR_MUTEX_RELEASE;
     return UVISOR_ERROR_PAGE_OK;
 }
+
+int page_allocator_evict(const UvisorPageTable * const table)
+{
+    /* Get the calling box id. */
+    const page_owner_t box_id = g_active_box;
+    /* Iterate over the table and validate each pointer. */
+    void * const * page_table = &(table->page_origins[0]);
+
+    int table_size = page_count;
+    for (; table_size > 0; page_table++, table_size--) {
+        uint8_t page_index = page_allocator_get_page_from_address((uint32_t) page);
+        /* Range check the returned pointer. */
+        if (page_index == UVISOR_PAGE_UNUSED) {
+            DPRINTF("uvisor_page_free: FAIL: Pointer 0x%08x does not belong to any page!\n\n", (unsigned int) page);
+            UVISOR_PAGE_ALLOCATOR_MUTEX_RELEASE;
+            return UVISOR_ERROR_PAGE_INVALID_PAGE_ORIGIN;
+        }
+        /* Check if the page belongs to the caller. */
+        if (page_allocator_map_get(g_page_owner_map[box_id], page_index)) {
+            /* Clear the owner and usage page maps for this page. */
+            page_allocator_map_clear(g_page_usage_map, page_index);
+            /* If the page was owned by box 0, we need to remove it from all other boxes! */
+            if (box_id == 0) {
+                uint32_t ii = 0;
+                for (; ii < UVISOR_MAX_BOXES; ii++) {
+                    page_allocator_map_clear(g_page_owner_map[ii], page_index);
+                }
+            } else {
+                /* Otherwise, only remove for the active box. */
+                page_allocator_map_clear(g_page_owner_map[box_id], page_index);
+            }
+            g_page_count_free++;
+            DPRINTF("uvisor_page_free: Freeing page at index %u\n", page_index);
+        }
+        else {
+            /* Abort if the page doesn't belong to the caller. */
+            if (!page_allocator_map_get(g_page_usage_map, page_index)) {
+                DPRINTF("uvisor_page_free: FAIL: Page %u is not allocated!\n\n", page_index);
+            } else {
+                DPRINTF("uvisor_page_free: FAIL: Page %u is not owned by box %u!\n\n", page_index, box_id);
+            }
+            UVISOR_PAGE_ALLOCATOR_MUTEX_RELEASE;
+            return UVISOR_ERROR_PAGE_INVALID_PAGE_OWNER;
+        }
+    }
+}

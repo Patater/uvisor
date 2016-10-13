@@ -65,6 +65,7 @@ const void *g_svc_vtor_tbl[] = {
     unvic_irq_enable_all,       // 21
     page_allocator_malloc,      // 22
     page_allocator_free,        // 23
+    page_allocator_evict,       // 24
 };
 
 /*******************************************************************************

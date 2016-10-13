@@ -54,6 +54,12 @@ int page_allocator_free(const UvisorPageTable * const table);
  */
 uint8_t page_allocator_get_page_from_address(uint32_t address);
 
+/* Evict a table of pages from the current MPU mapping.
+ * @return Non-zero on failure with failure class `UVISOR_ERROR_CLASS_PAGE`.
+ * See `UVISOR_ERROR_PAGE_*`.
+ */
+int page_allocator_evict(const UvisorPageTable * const table);
+
 /* Contains the configured page size. */
 extern uint32_t g_page_size;
 /* Points to the beginning of the page heap. */
