@@ -304,6 +304,7 @@ int page_allocator_free(const UvisorPageTable * const table)
 
 int page_allocator_evict(const UvisorPageTable * const table)
 {
+#if 0
     /* Get the calling box id. */
     const page_owner_t box_id = g_active_box;
     /* Iterate over the table and validate each pointer. */
@@ -346,4 +347,7 @@ int page_allocator_evict(const UvisorPageTable * const table)
             return UVISOR_ERROR_PAGE_INVALID_PAGE_OWNER;
         }
     }
+
+#endif
+    return UVISOR_ERROR_PAGE_OK;
 }

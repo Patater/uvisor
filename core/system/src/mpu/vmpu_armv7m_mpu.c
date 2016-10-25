@@ -441,6 +441,7 @@ bool vmpu_mpu_push(const MpuRegion * const region, uint8_t priority)
     return true;
 }
 
+#if 0
 bool vmpu_mpu_remove(const MpuRegion * const region)
 {
     /* Find the slot for this region. */
@@ -472,3 +473,4 @@ bool vmpu_mpu_remove(const MpuRegion * const region)
 
     return true;
 }
+#endif
