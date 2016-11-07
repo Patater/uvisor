@@ -176,6 +176,8 @@ uint32_t vmpu_sys_mux_handler(uint32_t lr, uint32_t msp)
              * uVisor handle some restricted registers.
              * Note: This feature will not be needed anymore when the
              * register-level will be implemented. */
+            /* XXX follow up on this, since we have register-level gateway
+             * now. */
 
             /* Note: All recovery functions update the stacked stack pointer so
              * that exception return points to the correct instruction. */
@@ -190,6 +192,8 @@ uint32_t vmpu_sys_mux_handler(uint32_t lr, uint32_t msp)
                 fault_status = VMPU_SCB_BFSR;
 
                 /* Check if the fault is the special register corner case. */
+                /* XXX what is the special register corner case? what does it
+                 * have to do with recoverying from a bus fault? */
                 if (!vmpu_fault_recovery_bus(pc, psp, fault_addr, fault_status)) {
                     VMPU_SCB_BFSR = fault_status;
                     return lr;

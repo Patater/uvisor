@@ -133,6 +133,7 @@ uint32_t vmpu_sys_mux_handler(uint32_t lr, uint32_t msp)
             }
 
             /* Check if the fault is the special register corner case. */
+            /* XXX Follow up on this. */
             if (!vmpu_fault_recovery_bus(pc, psp, fault_addr, fault_status)) {
                 VMPU_SCB_BFSR = fault_status;
                 return lr;
