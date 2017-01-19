@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-#include "rt_TypeDef.h"
-#include "rt_Memory.h"
+#include "rtx_lib.h"
 
 #include "secure_allocator.h"
 #include "uvisor-lib/uvisor-lib.h"
@@ -52,7 +51,7 @@ SecureAllocator secure_allocator_create_with_pool(
     /* The internal rt_Memory MEMP structure must be placed AFTER table.page_origins[0] !!! */
     size_t offset = OFFSETOF(SecureAllocatorInternal, table.page_origins) + sizeof(((UvisorPageTable) {0}).page_origins);
     /* Create MEMP structure inside the memory. */
-    if (rt_init_mem(mem + offset, bytes - offset)) {
+    if (!os_MemoryInit(mem + offset, bytes - offset)) {
         /* Abort if failed. */
         DPRINTF("secure_allocator_create_with_pool: MEMP allocator creation failed\n\n");
         return NULL;
@@ -113,7 +112,7 @@ SecureAllocator secure_allocator_create_with_pages(
     /* Initialize a MEMP structure in all pages. */
     for(size_t ii = 0; ii < page_count; ii++) {
         /* Add each page as a pool. */
-        rt_init_mem(allocator->table.page_origins[ii], page_size);
+        os_MemoryInit(allocator->table.page_origins[ii], page_size); /* XXX Not checking return code */
         DPRINTF("secure_allocator_create_with_pages: Created MEMP allocator %p with offset %d\n", allocator->table.page_origins[ii], 0);
     }
     DPRINTF("\n");
@@ -153,7 +152,7 @@ void * secure_malloc(
     size_t index = 0;
     do {
         /* Search in this page. */
-        void * mem = rt_alloc_mem(table(allocator)->page_origins[index], size);
+        void * mem = os_MemoryAlloc(table(allocator)->page_origins[index], size, 0);
         /* Return if we found something. */
         if (mem) {
             DPRINTF("secure_malloc: Found %4uB in page %u at %p\n", size, index, mem);
