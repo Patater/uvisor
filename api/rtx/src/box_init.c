@@ -149,6 +149,6 @@ void __uvisor_lib_box_init(void * lib_config)
 
     if (thread_id == NULL) {
         /* Failed to create thread */
-        mbed_die();
+        uvisor_error(USER_NOT_ALLOWED);
     }
 }
