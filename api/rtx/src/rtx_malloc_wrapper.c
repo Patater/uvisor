@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-#include "cmsis_os.h"
+#include "cmsis_os2.h"
 #include "uvisor-lib/uvisor-lib.h"
 
 #include <stdint.h>

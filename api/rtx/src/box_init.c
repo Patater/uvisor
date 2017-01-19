@@ -19,7 +19,7 @@
 #include "api/inc/rpc_exports.h"
 #include "api/inc/uvisor_semaphore.h"
 #include "mbed_interface.h"
-#include "cmsis_os.h"
+#include "cmsis_os2.h"
 #include <stdint.h>
 #include <string.h>
 

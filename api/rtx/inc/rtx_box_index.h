@@ -17,7 +17,7 @@
 #ifndef __RTX_BOX_INDEX_H__
 #define __RTX_BOX_INDEX_H__
 
-#include "cmsis_os.h"
+#include "cmsis_os2.h"
 
 #ifdef __cplusplus
 extern "C" {
