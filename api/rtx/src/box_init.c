@@ -120,16 +120,16 @@ void __uvisor_initialize_rpc_queues(void)
  * create box main threads for the box. */
 void __uvisor_lib_box_init(void * lib_config)
 {
-    osThreadId thread_id;
-    osThreadDef_t * flash_thread_def = lib_config;
-    osThreadDef_t thread_def;
+    osThreadId_t thread_id;
+    osThreadAttr_t * flash_thread_attr = lib_config;
+    osThreadAttr_t thread_attr;
 
     __uvisor_initialize_rpc_queues();
 
     /* Copy thread definition from flash to RAM. The thread definition is most
      * likely in flash, so we need to copy it to box-local RAM before we can
      * modify it. */
-    memcpy(&thread_def, flash_thread_def, sizeof(thread_def));
+    memcpy(&thread_attr, flash_thread_attr, sizeof(thread_attr));
 
     /* Note that the box main thread stack is separate from the box stack. This
      * is because the thread must be created to use a different stack than the
@@ -138,14 +138,14 @@ void __uvisor_lib_box_init(void * lib_config)
     /* Allocate memory for the main thread from the process heap (which is
      * private to the process). This memory is never freed, even if the box's
      * main thread exits. */
-    thread_def.stack_pointer = malloc_p(thread_def.stacksize);
+    thread_attr.stack_mem = malloc_p(thread_attr.stack_size);
 
-    if (thread_def.stack_pointer == NULL) {
+    if (thread_attr.stack_mem == NULL) {
         /* No process heap memory available */
         mbed_die();
     }
 
-    thread_id = osThreadCreate(&thread_def, NULL);
+    thread_id = osThreadNew(function, NULL, &thread_attr);
 
     if (thread_id == NULL) {
         /* Failed to create thread */
