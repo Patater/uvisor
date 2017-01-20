@@ -142,7 +142,7 @@ void __uvisor_lib_box_init(void * lib_config)
 
     if (thread_attr.stack_mem == NULL) {
         /* No process heap memory available */
-        mbed_die();
+        uvisor_error(USER_NOT_ALLOWED);
     }
 
     thread_id = osThreadNew(function, NULL, &thread_attr);
