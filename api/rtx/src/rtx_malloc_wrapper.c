@@ -70,7 +70,7 @@ static int init_allocator()
         __uvisor_ps->mutex_attr.cb_size = sizeof(__uvisor_ps->mutex_data);
 
         /* Create mutex if not already done. */
-        osMutexNew(&__uvisor_ps->mutex_attr);
+        __uvisor_ps->mutex_id = osMutexNew(&__uvisor_ps->mutex_attr);
         /* Mutex failed to be created. */
         if (__uvisor_ps->mutex_id == NULL) {
             return -1;
@@ -125,7 +125,7 @@ static void * memory(void * ptr, size_t size, int heap, int operation)
      * the `rt_alloc_mem` and `rt_free_mem` functions in `uvisor_allocator.c`.
      * However, it is simpler to do it here for now. */
     if (mutexed) {
-        osMutexWait(__uvisor_ps->mutex_id, osWaitForever);
+        osMutexAcquire(__uvisor_ps->mutex_id, osWaitForever);
     }
     /* Perform the required operation. */
     switch(operation)
