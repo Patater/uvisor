@@ -110,6 +110,9 @@ static void thread_switch_nonatomic(void * c)
     drain_message_queue();
     drain_result_queue();
 
+    /* Drain the IPC queue. */
+    ipc_drain_queue();
+
     if (context == NULL) {
         return;
     }
