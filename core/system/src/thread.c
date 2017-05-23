@@ -18,6 +18,7 @@
 // #include "api/inc/vmpu_exports.h"
 #include "context.h"
 #include "halt.h"
+#include "ipc.h"
 #include "vmpu.h"
 #include "rpc.h"
 

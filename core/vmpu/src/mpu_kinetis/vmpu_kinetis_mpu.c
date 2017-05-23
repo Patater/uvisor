@@ -403,3 +403,67 @@ bool vmpu_mpu_push(const MpuRegion * const region, uint8_t priority)
 
     return true;
 }
+
+static bool value_in_range(size_t start, size_t end, size_t value)
+{
+    return start <= value && value < end;
+}
+
+static bool vmpu_buffer_access_is_ok_static(uint32_t start_addr, uint32_t end_addr)
+{
+    /* NOTE: Buffers are not allowed to span more than 1 region. If they do
+     * span more than one region, access will be denied. */
+
+    /* Search through all static regions programmed into the MPU, until we find
+     * a region that contains both the start and end of our buffer. */
+    for (uint8_t slot = 0; slot < K64F_MPU_REGIONS_STATIC; ++slot) {
+        MPU_Region * mpu_region = (MPU_Region *) MPU->WORD[slot];
+        uint32_t start = mpu_region->STARTADDR;
+        uint32_t end = mpu_region->ENDADDR;
+
+        /* Test that the buffer is fully contained in the region. */
+        if (value_in_range(start, end, start_addr) && value_in_range(start, end, end_addr)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool vmpu_buffer_access_is_ok(int box_id, const void * addr, size_t size)
+{
+    uint32_t start_addr = (uint32_t) addr;
+    uint32_t end_addr = start_addr + size - 1;
+
+    /* NOTE: Buffers are not allowed to span more than 1 region. If they do
+     * span more than one region, access will be denied. */
+
+    if (box_id != 0) {
+        /* Check the public box as well as the specified box, since public box
+         * memories are accessible by all boxes. */
+        if (vmpu_buffer_access_is_ok(0, addr, size)) {
+            return true;
+        }
+    } else {
+        /* Check static regions. */
+        if (vmpu_buffer_access_is_ok_static(start_addr, end_addr)) {
+            return true;
+        }
+    }
+
+    assert(start_addr <= end_addr);
+    if (start_addr > end_addr) {
+        /* We couldn't determine the end of the buffer. */
+        return false;
+    }
+
+    MpuRegion * region = vmpu_region_find_for_address(box_id, start_addr);
+    if (!region) {
+        /* No region contained the start of the buffer. */
+        return false;
+    }
+
+    /* If the end address is also within the region, and the region is NS
+     * accessible, then access to the buffer is OK. */
+    return value_in_range(region->start, region->end, end_addr);
+}
