@@ -119,7 +119,7 @@ typedef struct {
      * */
     UvisorLibHooks const * const lib_hooks;
 
-    TUvisorDebugDriver const * * const debug_driver_ptr;
+    TUvisorDebugDriver const * const debug_driver;
 } UVISOR_PACKED UvisorConfig;
 
 extern UvisorConfig const __uvisor_config;

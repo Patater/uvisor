@@ -419,26 +419,26 @@ static void vmpu_enumerate_boxes(void)
         /* Select the pointer to the (permuted) box configuration table. */
         int index = box_order[box_id];
         UvisorBoxConfig const * box_cfgtbl = ((UvisorBoxConfig const * *) __uvisor_config.cfgtbl_ptr_start)[index];
-        TUvisorDebugDriver const * debug_driver_ptr = *((TUvisorDebugDriver const * *) __uvisor_config.debug_driver_ptr);
+        TUvisorDebugDriver const * const debug_driver = __uvisor_config.debug_driver;
 
         /* If a debug driver was created by the application and it is associated to this box_id,
          * initialize g_debug_box accordingly.
          * Note: The verification that no more than one box was created and been associated with the debug driver
          * is done statically on debug driver creation time [in build time] */
-        if (debug_driver_ptr != NULL) {
-            if (debug_driver_ptr->box_cfg_ptr == box_cfgtbl) {
+        if (debug_driver != NULL) {
+            if (debug_driver->box_cfg_ptr == box_cfgtbl) {
 
                 /* Before g_debug_box initialization, verify magic and version of the debug box. */
-                if (debug_driver_ptr->magic != UVISOR_DEBUG_BOX_MAGIC) {
+                if (debug_driver->magic != UVISOR_DEBUG_BOX_MAGIC) {
                     HALT_ERROR(SANITY_CHECK_FAILED, "Box %i @0x%08X: Wrong debug box magic.\r\n",
                             box_id, (uint32_t) box_cfgtbl);
                 }
-                if (debug_driver_ptr->version != UVISOR_DEBUG_BOX_VERSION) {
+                if (debug_driver->version != UVISOR_DEBUG_BOX_VERSION) {
                     HALT_ERROR(SANITY_CHECK_FAILED, "Box %i @0x%08X: Wrong debug box version.\r\n",
                             box_id, (uint32_t) box_cfgtbl);
                 }
 
-                g_debug_box.driver = debug_driver_ptr;
+                g_debug_box.driver = debug_driver;
                 g_debug_box.box_id = box_id;
 
                 /* Set g_debug_box.initialized only after g_debug_interrupt_sp[] is set */
